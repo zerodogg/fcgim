@@ -189,14 +189,14 @@ sub msg
 	{
 		print "Test startup of new FastCGI instance failed. Something is wrong with the new\n";
 		print "instance. The old one is still running. Output from attempt to start:\n\n";
-		main::getCmdOutput();
+		print main::getCmdOutput();
 		exit(1);
 	}
 	elsif($msg eq 'start_error')
 	{
 		print "failed\n";
 		print "Startup of FastCGI instance failed. Output from attempt to start:\n\n";
-		main::getCmdOutput();
+		print main::getCmdOutput();
 		exit(1);
 	}
 	elsif($msg eq 'stop_error')
