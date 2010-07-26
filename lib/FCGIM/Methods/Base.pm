@@ -68,6 +68,27 @@ sub restart
 	}
 }
 
+sub restartDead
+{
+    my $self = shift;
+    print "Checking ".$self->name."...";
+	my $status = $self->getStatus();
+	if ($status == STATUS_RUNNING)
+	{
+        print "running ok\n";
+    }
+    elsif($status == STATUS_STOPPED)
+    {
+        print "stopped\n";
+    }
+    else
+    {
+        print "dead - restarting\n";
+        $self->start();
+    }
+    return;
+}
+
 sub killPID
 {
 	my $self = shift;

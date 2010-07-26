@@ -68,9 +68,9 @@ sub main
 	}
 	if(not defined $command)
 	{
-        if (defined $app && $app eq 'status')
+        if (defined $app && $app =~ /^(status|restartdead)$/)
         {
-            $command = 'status';
+            $command = $app;
             $app = 'all';
         }
         else
@@ -116,11 +116,14 @@ sub fullUsage
 	print "Usage: $appN [APP] [COMMAND]\n";
 	print " [APP] can be the string \"all\" to perform the action for ALL applications.\n";
 	print "\nCommands:\n";
-	print "start      - start an application\n";
-	print "stop       - stop an application\n";
-	print "restart    - restart an application\n";
-	print "status     - display status information for an application\n";
-    print "             this is the only command that works without [APP]\n";
+	print "start         - start an application\n";
+	print "stop          - stop an application\n";
+	print "restart       - restart an application\n";
+	print "status *      - display status information for an application\n";
+	print "restartdead * - restart an application if it has died\n";
+    print "\n";
+    print "*) Can be used without supplying an [APP] - in which case it assumes\n";
+    print "   APP=all\n";
 }
 
 sub actionHandler
@@ -131,7 +134,7 @@ sub actionHandler
 	$app = getAppConfig($app);
 	my $object = getObject($app);
 
-	if ($action eq 'start')
+	if   ($action eq 'start')
 	{
 		$object->start();
 	}
@@ -147,6 +150,10 @@ sub actionHandler
 	{
 		$object->status();
 	}
+    elsif($action eq 'restartdead')
+    {
+        $object->restartDead();
+    }
 	else
 	{
 		die("Unknown action \"$action\"\n");
