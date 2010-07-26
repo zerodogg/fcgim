@@ -53,7 +53,6 @@ sub start
 sub stop
 {
 	my $self = shift;
-	die("stopApp unimplemented in parent\n") if !$self->can('stopApp');
 	if ($self->getStatus == STATUS_STOPPED)
 	{
 		print "Already stopped.\n";
@@ -65,7 +64,33 @@ sub stop
 	}
 	else
 	{
-		return $self->stopApp();
+		my $PID = $self->getPID();
+
+		$self->msg('stopping');
+		for my $l (1..10)
+		{
+			if ($l > 5)
+			{
+				$self->msg('stopinsist') if $l == 6;
+				kill(9,$PID);
+			}
+			else
+			{
+				kill(15,$PID);
+			}
+
+			last if $self->getStatus != STATUS_RUNNING;
+			sleep(1);
+			last if $self->getStatus != STATUS_RUNNING;
+		}
+
+		if ($self->getStatus == STATUS_RUNNING)
+		{
+			$self->msg('stop_error');
+		}
+		unlink($self->app->{PIDFile});
+		unlink($self->app->{serverFile});
+		$self->msg('done');
 	}
 }
 
@@ -165,9 +190,13 @@ sub getStatus
 }
 
 # Purpose: Wrapper around main::cmd() and system()
+# First parameter is a bool, daemonize. If you need fcgim to handle daemonizing
+# the command, set it to a string - path to the pidfile to write. Otherwise set it
+# to false.
 sub cmd
 {
 	my $self = shift;
+	my $daemonize = shift;
 	my $gid = $);
     my $pid = $>;
 	if ($gid =~ /\D/)
@@ -204,11 +233,11 @@ sub cmd
     my $ret;
 	if ( $self->app->{runAsUID} != $pid || $self->app->{runAsGID} != $gid )
 	{
-		$ret = main::cmd($self->app->{runAsGID},$self->app->{runAsUID},@_);
+		$ret = main::cmd($self->app->{runAsGID},$self->app->{runAsUID},$daemonize,@_);
 	}
     else
     {
-        $ret = main::cmd(undef,undef,@_);
+        $ret = main::cmd(undef,undef,$daemonize,@_);
     }
 
     # Reset environment

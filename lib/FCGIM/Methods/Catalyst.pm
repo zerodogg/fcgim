@@ -25,6 +25,8 @@ use constant {
 	STATUS_RUNNING => 1,
 	STATUS_STOPPED => 2,
 	STATUS_DEAD    => 3,
+	true => 1,
+	false => 0,
 };
 
 has 'fcgiScript' => (
@@ -61,7 +63,7 @@ sub startApp
 	}
 
     $self->preparePIDFile($self->app->{PIDFile});
-	my $r = $self->cmd($self->script,'--listen',$self->app->{serverFile},'--nproc',$self->app->{processes},'--pidfile',$self->app->{PIDFile},'--daemon');
+	my $r = $self->cmd(false,$self->script,'--listen',$self->app->{serverFile},'--nproc',$self->app->{processes},'--pidfile',$self->app->{PIDFile},'--daemon');
 	if ($r != 0)
 	{
 		$self->msg('start_error');
@@ -112,7 +114,7 @@ sub restartApp
 	$self->msg('testinstance');
     $self->preparePIDFile($tmpP);
     unlink($tmpL);
-	my $r = $self->cmd($self->script,'--listen',$tmpL,'--nproc',1,'--pidfile',$tmpP,'--daemon');
+	my $r = $self->cmd(false,$self->script,'--listen',$tmpL,'--nproc',1,'--pidfile',$tmpP,'--daemon');
 
 	if ($r != 0 || !$self->getPID($tmpP))
 	{

@@ -22,7 +22,7 @@ use Getopt::Long;
 use Storable qw(dclone);
 use File::Path qw(mkpath);
 use File::Temp;
-use POSIX qw(setgid setuid);
+use POSIX qw(setgid setuid setsid);
 use File::Basename qw(basename);
 use FindBin;
 use lib "$FindBin::RealBin/lib/";
@@ -261,10 +261,15 @@ sub cmd
 {
 	my $dropToGID = shift;
 	my $dropToPID = shift;
+	my $daemonize = shift;
     # Use cmdhelper if needed
 	if(defined $dropToPID and defined $dropToGID)
 	{
-		unshift(@_,$0,'cmdHelper',$dropToGID,$dropToPID);
+		unshift(@_,$0,'cmdHelper','setID',$dropToGID,$dropToPID);
+	}
+	if($daemonize)
+	{
+		unshift(@_,$0,'cmdHelper','daemonize',$daemonize);
 	}
     # Redirect output
 	if(not $cmdOutFile)
@@ -352,14 +357,39 @@ sub tempfile
 sub cmdHelper
 {
 	shift(@ARGV);
-	my $uid = shift(@ARGV);
-	my $gid = shift(@ARGV);
-	setgid($gid) or die("Failed to setgid($gid): $!\n");
-	setuid($uid) or die("Failed to setuid($uid): $!\n");
+	my $type = shift(@ARGV);
+	if ($type eq 'setID')
+	{
+		my $uid = shift(@ARGV);
+		my $gid = shift(@ARGV);
+		setgid($gid) or die("Failed to setgid($gid): $!\n");
+		setuid($uid) or die("Failed to setuid($uid): $!\n");
 
-	die("Command missing\n") if not @ARGV;
+		die("Command missing\n") if not @ARGV;
 
-	exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
+		exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
+	}
+	elsif($type eq 'daemonize')
+	{
+		my $pidFile = shift(@ARGV);
+		my $newPID = fork;
+		exit(0) if $newPID;
+		die("Failed to fork: $!\n") if not defined($newPID);
+
+		open(my $pf,'>',$pidFile) or die("Failed to open $pidFile: $!\n");
+		print {$pf} $$;
+		close($pf);
+
+		setsid();
+		open(STDIN, '<', '/dev/null');
+		open(STDOUT, '>>', '/dev/null');
+		open(STDERR, '>>', '/dev/null');
+		exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
+	}
+	else
+	{
+		die("Unknown helper type \"$type\"\n");
+	}
 }
 __END__
 =encoding utf8
@@ -378,8 +408,8 @@ fcgim is a FastCGI application manager. It handles starting/stopping/restarting
 many different FastCGI instances and provides a simple initscript-like interface
 to performing actions on them.
 
-Currently it only supports Catalyst FastCGI applications, but adding support for
-new types of applications is simple, and can be done in roughly 100 lines of
+Currently it only supports Catalyst and PHP FastCGI applications, but adding support for
+new types of applications is simple, and can be done in under 100 lines of
 code (including comments). See ./lib/FCGIM/Methods/Catalyst.pm for an example.
 
 =head1 COMMANDS
@@ -396,11 +426,14 @@ Stops an application if it is currently running.
 
 =item B<restart>
 
-Restarts an application. Before performing the actual restart, fcgim will launch
-a test version of the application to make sure it starts up correctly before
-restarting the currently running instance - if that fails, the one currently
-running will be kept, if it succeeds it will proceed and stop then start
-the application.
+Restarts an application.
+
+For those application types that support it, fcgim will launch a test version of the
+application before the actual restart to make sure it starts up correctly
+before restarting the currently running instance - if that fails, the one
+currently running will be kept, if it succeeds it will proceed and stop then
+start the application. Currently, only the Catalyst application type supports
+this.
 
 =item B<status>
 
