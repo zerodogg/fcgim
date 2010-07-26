@@ -68,6 +68,7 @@ sub killPID
 	my $self = shift;
 	my $PID = shift;
 	$PID = $self->getPID($PID);
+    die("killPID() failed to locate any PID to kill, bailing out\n") if not defined $PID;
 	kill(15,$PID);
 }
 
@@ -97,7 +98,7 @@ sub status
 sub getStatus
 {
 	my $self = shift;
-	if(not -e $self->app->{PIDFile})
+	if(not -e $self->app->{PIDFile} or not defined($self->getPID()))
 	{
 		return STATUS_STOPPED;
 	}
@@ -113,11 +114,17 @@ sub cmd
 {
 	my $self = shift;
 	my $gid = $);
+    my $pid = $>;
 	if ($gid =~ /\D/)
 	{
 		$gid = -1;
 	}
-	if ($self->app->{runAsPID} != $> || $self->app->{runAsGID} != $) )
+    if(not defined $pid)
+    {
+        $pid = $<;
+    }
+	if (
+        $self->app->{runAsUID} != $pid || $self->app->{runAsGID} != $gid )
 	{
 		return main::cmd($self->app->{runAsGID},$self->app->{runAsUID},@_);
 	}
@@ -129,6 +136,10 @@ sub pidRunning
 	my $self = shift;
 	my $pid = shift;
 	$pid = $self->getPID($pid);
+    if(not defined $pid or not length($pid))
+    {
+        return;
+    }
 	if (-d '/proc/'.$pid)
 	{
 		return 1;
@@ -152,7 +163,7 @@ sub getPID
 	{
 		open(my $i,'<',$PID) or die("Failed to read PID file $PID: $!\n");
 		my $pid = <$i>;
-		chomp($pid);
+		chomp($pid) if defined $pid;
 		close($i);
 		$PID = $pid;
 	}
@@ -187,6 +198,7 @@ sub msg
 	}
 	elsif($msg eq 'testinstance_error')
 	{
+        print "failed\n";
 		print "Test startup of new FastCGI instance failed. Something is wrong with the new\n";
 		print "instance. The old one is still running. Output from attempt to start:\n\n";
 		print main::getCmdOutput();
@@ -217,6 +229,15 @@ sub msg
 	{
 		print "done\n";
 	}
+}
+
+sub preparePIDFile
+{
+    my $self = shift;
+    my $file = shift;
+    open(my $pf,'>',$file) or die("Failed to create PID file ".$file.": $!\n");
+    close($pf);
+    chown($self->app->{runAsUID},$self->app->{runAsGID},$file);
 }
 
 1;
