@@ -168,7 +168,7 @@ sub loadConfig
 
 	foreach my $appReq (qw(runAsPID runAsGID))
 	{
-		if(not defined $config->{fcgim}->{$appReq} or not length($config->{fcgim}->{$appReq}))
+		if(not defined($config->{fcgim}->{$appReq}) or not length($config->{fcgim}->{$appReq}))
 		{
 			die("Required configuration option fcgim:$appReq not set\n");
 		}
