@@ -31,7 +31,7 @@ use constant {
 
 my %methods;
 my $config;
-my $confFile = './fcgim.conf';
+my $confFile = '/etc/fcgim.conf';
 my $cmdOutFile;
 
 main();
