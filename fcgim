@@ -64,7 +64,15 @@ sub main
 	}
 	if(not defined $app)
 	{
-		die($usage);
+        if ($command eq 'status')
+        {
+            print "(you did not supply any app to get the status for, assuming \"all\")\n\n";
+            $app = 'all';
+        }
+        else
+        {
+            die($usage);
+        }
 	}
 
 	if(not defined $config->{apps}->{$app} and not $app eq 'all')
