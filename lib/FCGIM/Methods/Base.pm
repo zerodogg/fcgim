@@ -259,6 +259,10 @@ sub msg
 	{
 		print "done (PID ".$self->getPID().")\n";
 	}
+    elsif($msg eq 'works')
+    {
+        print "works\n";
+    }
 	elsif($msg eq 'done')
 	{
 		print "done\n";

@@ -99,7 +99,7 @@ sub restartApp
 	$self->killPID($tmpP);
 	unlink($tmpL); unlink($tmpP);
 
-	$self->msg('done');
+	$self->msg('works');
 	
 	$self->stopApp();
 	$self->startApp();
