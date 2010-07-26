@@ -17,9 +17,10 @@ install: test
 	cp -r fcgim lib "$(DATADIR)/fcgim"
 	ln -sf "$(DATADIR)/fcgim/fcgim" "$(BINDIR)"
 	[ -e "/etc/fcgim.conf" ] || cp fcgim.conf /etc/
+	[ -e fcgim.1 ] && mkdir -p "$(DATADIR)/man/man1" && cp fcgim.1 "$(DATADIR)/man/man1" || true
 uninstall:
 	rm -rf "$(DATADIR)/fcgim"
-	rm -f "$(BINDIR)/fcgim"
+	rm -f "$(BINDIR)/fcgim" "$(DATADIR)/man/man1/fcgim.1"
 man:
 	pod2man --name "fcgim" --center "" --release "fcgim $(VERSION)" ./fcgim ./fcgim.1
 distrib: clean test man
