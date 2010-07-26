@@ -1,0 +1,295 @@
+#!/usr/bin/perl
+# fcgim - FastCGI application manager
+# Copyright (C) Eskild Hustvedt 2010
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+use strict;
+use warnings;
+use JSON::Any;
+use Getopt::Long;
+use Storable qw(dclone);
+use File::Path qw(mkpath);
+use File::Temp;
+use FindBin;
+use lib "$FindBin::RealBin/lib/";
+use constant {
+	true           => 1,
+	false          => undef,
+};
+
+my %methods;
+my $config;
+my $confFile = './fcgim.conf';
+my $cmdOutFile;
+
+main();
+
+sub main
+{
+	loadConfig($confFile);
+
+	my $command = shift(@ARGV);
+	my $app = shift(@ARGV);
+
+	my $usage = "Usage: $0 [COMMAND] [APP or all]\nSee \"$0 --help\" for more information.\n";
+
+	$| = 1;
+
+	if(not defined $command)
+	{
+		die($usage);
+	}
+	if ($command =~ /^(--?help|-h)$/)
+	{
+		fullUsage();
+		exit(0);
+	}
+	if(not defined $app)
+	{
+		die($usage);
+	}
+
+	if(not defined $config->{apps}->{$app} and not $app eq 'all')
+	{
+		die("$app: unknown application\n");
+	}
+
+	if(not -d $config->{fcgim}->{fcgimTempPath})
+	{
+		mkpath($config->{fcgim}->{fcgimTempPath}) or die("Failed to create $config->{fcgim}->{fcgimTempPath}: $!\n");
+	}
+
+	if ($app eq 'all')
+	{
+		foreach my $e (keys %{$config->{apps}})
+		{
+			actionHandler($command,$e);
+		}
+	}
+	else
+	{
+		actionHandler($command,$app);
+	}
+
+	exit(0);
+}
+
+sub fullUsage
+{
+	print "Usage: $0 [COMMAND] [APP]\n";
+	print " [APP] can be the string \"all\" to perform the action for ALL applications.\n";
+	print "\nCommands:\n";
+	print "start      - start an application\n";
+	print "stop       - stop an application\n";
+	print "restart    - restart an application\n";
+	print "status     - display status information for an application\n";
+}
+
+sub actionHandler
+{
+	my $action = shift;
+	my $app = shift;
+
+	$app = getAppConfig($app);
+	my $object = getObject($app);
+
+	if ($action eq 'start')
+	{
+		$object->start();
+	}
+	elsif($action eq 'restart')
+	{
+		$object->restart();
+	}
+	elsif($action eq 'stop')
+	{
+		$object->stop();
+	}
+	elsif($action eq 'status')
+	{
+		$object->status();
+	}
+	else
+	{
+		die("Unknown action \"$action\"\n");
+	}
+}
+
+sub loadConfig
+{
+	my $file = shift;
+
+	die("Configuration file \"$file\": does not exist\n") if not -e $file;
+	die("Configuration file \"$file\": is not readable\n") if not -r $file;
+
+	open(my $i,'<',$file) or die("Failed to open \"$file\" for reading: $!\n");
+	my $content;
+	while(my $line = <$i>)
+	{
+		next if $line =~ m{^\s*//};
+		$line =~ s/^\s+//;
+		chomp($line);
+		$content .= $line;
+	}
+	close($i) or warn("Failed to close filehandle for \"$file\": $!\n");
+	
+	# Allow commas at the end of lists in the config file
+	$content =~ s/,}/}/g;
+
+	eval
+	{
+		$config = JSON::Any->jsonToObj($content) or die("Failed to parse the config file.\n");
+		1;
+	};
+	if (my $e = $@)
+	{
+		my $extra = '';
+		if ($content =~ /\'/)
+		{
+			$extra = "\nKeep in mind that using \' as quotes in JSON is not allowed, use \".";
+		}
+		$e =~ s/at\s*\S+\s*line\s*\S+//;
+		chomp($e);
+
+		die("Failed to parse config file: $e$extra\n");
+	}
+
+	foreach my $appReq (qw(runAsPID runAsGID))
+	{
+		if(not defined $config->{fcgim}->{$appReq} or not length($config->{fcgim}->{$appReq}))
+		{
+			die("Required configuration option fcgim:$appReq not set\n");
+		}
+	}
+
+	if(not keys %{$config->{apps}})
+	{
+		die("No applications defined in config\n");
+	}
+	elsif(scalar(keys %{$config->{apps}}) == 1 && $config->{apps}->{app1})
+	{
+		die("You need to change the name of the first application to something other than \"app1\" to indicate that you have actually configured an application.\n");
+	}
+
+	foreach my $app (keys %{$config->{apps}})
+	{
+		foreach my $req (qw(path type processes serverFile))
+		{
+			my $e = $config->{apps}->{$app}->{$req};
+			if(not defined $e or not length($e))
+			{
+				die("The configuration option \"$req\" for the application \"$app\" is not set\n");
+			}
+		}
+	}
+}
+
+sub appStart
+{
+}
+
+sub appStop
+{
+}
+
+sub appRestart
+{
+}
+
+sub appStatus
+{
+}
+
+sub cmd
+{
+	if(not $cmdOutFile)
+	{
+		$cmdOutFile = tempfile(UNLINK => 1);
+	}
+	no warnings;
+	open(SAVED_OUT,">&STDOUT");
+    open(SAVED_ERR,">&STDERR");
+	open(STDOUT,'>',$cmdOutFile) or die("Failed to redirect STDOUT to $cmdOutFile: $!\n");
+	open(STDERR,'>',$cmdOutFile) or die("Failed to redirect STDERR to $cmdOutFile: $!\n");
+    my $ret = system(@_);
+    open(STDOUT,">&SAVED_OUT");
+    open(STDERR,">&SAVED_ERR");
+	use warnings;
+    return $ret;
+}
+
+sub getCmdOutput
+{
+	if(defined $cmdOutFile or not -e $cmdOutFile)
+	{
+		return '';
+	}
+	open(my $i,'<',$cmdOutFile);
+	my $v = $/;
+	$/ = undef;
+	my $data = <$i>;
+	$/ = $v;
+	close($i);
+	return $data;
+}
+
+sub getStatus
+{
+	my $app = shift;
+}
+
+sub getObject
+{
+	my $app = shift;
+	my $type = $app->{type};
+	$type =~ s/\W//;
+	if(not eval('use FCGIM::Methods::'.$type.';1;'))
+	{
+		die("Unknown type: $type\n");
+	}
+	my $o = eval('return FCGIM::Methods::'.$type.'->new(app => $app)');
+	return $o;
+}
+
+sub getAppConfig
+{
+	my $app = shift;
+
+	my $appConf = dclone($config->{apps}->{$app});
+
+	# Generate/copy defaults as needed
+	foreach my $copyDefault (qw(runAsPID runAsGID))
+	{
+		if(not defined $appConf->{$copyDefault})
+		{
+			$appConf->{$copyDefault} = $config->{fcgim}->{$copyDefault};
+		}
+	}
+	if(not defined $appConf->{PIDFile})
+	{
+		$appConf->{PIDFile} = $config->{fcgim}->{fcgimTempPath}.'/'.$app.'.pidfile';
+	}
+
+	$appConf->{name} = $app;
+
+	return $appConf;
+}
+
+sub tempfile
+{
+	my ($fh,$fnam) = File::Temp::tempfile(@_);
+	close($fh);
+	return $fnam;
+}
