@@ -271,7 +271,7 @@ sub getObject
 	{
 		die("Unknown type: $type\n");
 	}
-	my $o = eval('return FCGIM::Methods::'.$type.'->new(app => $app)');
+	my $o = eval('return FCGIM::Methods::'.$type.'->new(app => $app, fullConfig => $config)');
 	return $o;
 }
 

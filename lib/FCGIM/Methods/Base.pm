@@ -6,6 +6,11 @@ has 'app' => (
 	isa => 'HashRef',
 	required => 1,
 	);
+has 'fullConfig' => (
+    is => 'rw',
+    isa => 'HashRef',
+    required => 1,
+    );
 
 use constant {
 	STATUS_RUNNING => 1,
@@ -123,12 +128,41 @@ sub cmd
     {
         $pid = $<;
     }
-	if (
-        $self->app->{runAsUID} != $pid || $self->app->{runAsGID} != $gid )
+
+    # Set environment
+    my %savedENV;
+    if(defined $self->fullConfig->{fcgim}->{ENV} && %{$self->fullConfig->{fcgim}->{ENV}} && keys(%{$self->fullConfig->{fcgim}->{ENV}}))
+    {
+        foreach my $k (keys(%{$self->fullConfig->{fcgim}->{ENV}}))
+        {
+            $savedENV{$k} = $ENV{$k};
+            $ENV{$k} = $self->fullConfig->{fcgim}->{ENV}->{$k};
+        }
+    }
+    if(defined $self->app->{ENV} && %{$self->app->{ENV}} && keys(%{$self->app->{ENV}}))
+    {
+        foreach my $k (keys(%{$self->app->{ENV}}))
+        {
+            $savedENV{$k} = $ENV{$k} if not defined $savedENV{$k};
+            $ENV{$k} = $self->app->{ENV}->{$k};
+        }
+    }
+
+    my $ret;
+	if ( $self->app->{runAsUID} != $pid || $self->app->{runAsGID} != $gid )
 	{
-		return main::cmd($self->app->{runAsGID},$self->app->{runAsUID},@_);
+		$ret = main::cmd($self->app->{runAsGID},$self->app->{runAsUID},@_);
 	}
-	return main::cmd(undef,undef,@_);
+    else
+    {
+        $ret = main::cmd(undef,undef,@_);
+    }
+
+    foreach my $k (keys(%savedENV))
+    {
+        $ENV{$k} = $savedENV{$k};
+    }
+    return $ret;
 }
 
 sub pidRunning
