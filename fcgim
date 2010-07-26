@@ -36,16 +36,40 @@ my $appN = basename($0);
 my $config;
 my $confFile = '/etc/fcgim.conf';
 my $cmdOutFile;
+my $VERSION = '0.1';
 
 main();
 
 # Purpose: Main sub, handles initialization, command-line parsing etc.
 sub main
 {
-    # Run cmdHelper if requested, this is only used internally
-	if (defined($ARGV[0]) && $ARGV[0] eq 'cmdHelper')
+	my $usage = "Usage: $appN [APP or all] [COMMAND]\nSee \"$appN --help\" for more information.\n";
+
+	if(defined $ARGV[0])
 	{
-		cmdHelper();
+		# Run cmdHelper if requested, this is only used internally
+		if ($ARGV[0] eq 'cmdHelper')
+		{
+			cmdHelper();
+		}
+
+		# Handle --help and --version
+		if ($ARGV[0] =~ /^(--?help|-h)$/)
+		{
+			fullUsage();
+			exit(0);
+		}
+		elsif($ARGV[0] =~ /^--version$/)
+		{
+			print "fcgim version $VERSION\n";
+			exit(0);
+		}
+	}
+    # If we have no params, output usage and exit
+	else
+	{
+        print $usage;
+        exit(0);
 	}
 
     # Load the config file, if errors occur we die()
@@ -54,24 +78,9 @@ sub main
 	my $app = shift(@ARGV);
 	my $command = shift(@ARGV);
 
-	my $usage = "Usage: $appN [APP or all] [COMMAND]\nSee \"$appN --help\" for more information.\n";
-
     # Flush STDOUT immediately
 	$| = 1;
 
-    # If we have no params, output usage and exit
-	if(not defined $app)
-	{
-        print $usage;
-        exit(0);
-	}
-
-    # Handle --help
-	if ($app =~ /^(--?help|-h)$/)
-	{
-		fullUsage();
-		exit(0);
-	}
     # If no command was supplied, check if we requested either of the commands that
     # work without apps, if so, assume command=$app app=all.
     # Otherwise display usage info.
