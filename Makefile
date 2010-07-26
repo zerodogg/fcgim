@@ -7,7 +7,7 @@ DISTFILES=fcgim Makefile fcgim.conf README COPYING lib fcgim.1
 default: test
 
 test:
-	@for file in ./fcgim ./lib/FCGIM/Methods/Base.pm ./lib/FCGIM/Methods/Catalyst.pm; do perl -Ilib -c $$file || exit 1;done
+	@for file in ./fcgim ./lib/FCGIM/Methods/Base.pm ./lib/FCGIM/Methods/Catalyst.pm ./lib/FCGIM/Methods/PHP.pm; do perl -Ilib -c $$file || exit 1;done
 clean:
 	rm -f `find|egrep '~$$'`
 	rm -rf fcgim-$(VERSION)
