@@ -361,3 +361,164 @@ sub cmdHelper
 
 	exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
 }
+__END__
+=encoding utf8
+
+=head1 NAME
+
+fcgim - a FastCGI application manager
+
+=head1 SYNOPSIS
+
+B<fcgim> [I<APPLICATION NAME>] [I<OPTIONS>]
+
+=head1 DESCRIPTION
+
+fcgim is a FastCGI application manager. It handles starting/stopping/restarting
+many different FastCGI instances and provides a simple initscript-like interface
+to performing actions on them.
+
+Currently it only supports Catalyst FastCGI applications, but adding support for
+new types of applications is simple, and can be done in roughly 100 lines of
+code (including comments). See ./lib/FCGIM/Methods/Catalyst.pm for an example.
+
+=head1 COMMANDS
+
+=over
+
+=item B<start>
+
+Starts an application if it is not already running.
+
+=item B<stop>
+
+Stops an application if it is currently running.
+
+=item B<restart>
+
+Restarts an application. Before performing the actual restart, fcgim will launch
+a test version of the application to make sure it starts up correctly before
+restarting the currently running instance - if that fails, the one currently
+running will be kept, if it succeeds it will proceed and stop then start
+the application.
+
+=item B<status>
+
+Display status (running/stopped/dead) information for an application.
+
+This can be used without any [APPLICATION] parameter, in which case it will
+output status information for all applications.
+
+=item B<restartdead>
+
+Restart a dead application.
+
+This can be used without any [APPLICATION] parameter, in which case it will
+restart all dead applications.
+
+=back
+
+=head1 OPTIONS
+
+=over
+
+=item B<-h, --help>
+
+Display the help screen
+
+=item B<--version>
+
+Display the version number
+
+=back
+
+=head1 CONFIGURATION FILE
+
+The configuration format is a liberal version of JSON. It should be placed at
+I</etc/fcgim.conf>.
+
+=head2 EXAMPLE
+
+	// FCGIM configuration file. The format for this file is JSON, with the added
+	// support for comments (any line that STARTS with // is considered a comment)
+	{
+		// Configuration of fcigm itself
+		"fcgim": {
+			 // Which UID and GID respectively to run the fastcgi processes
+			 // as. You can also set them on a per-app basis.
+			"runAsUID":33,
+			"runAsGID":33,
+			 // Where to put PID files etc.
+			 // This SHOULD be somewhere that gets cleaned on every startup,
+			 // /dev/shm/fcgim is therefore a good choice
+			 "fcgimTempPath":"/dev/shm/fcgim",
+			 // Any environment variables you want set in the environment of
+			 // ALL applications. Variables in any app-specific ENV overrides
+			 // variables set here.
+			 "ENV": {
+				 "PERL5LIB":"/var/perlApp.data/perlModules/lib/perl5:/var/perlApp.data/perlModules/lib/perl5/i486-linux-gnu-thread-multi",
+			 },
+		},
+		// Your apps, one entry in this hash for each of your FastCGI apps
+		// that you want fcgim to manage. The "key" will be the name of the app
+		// that you can use to refer to the app in fcgim invocations.
+		"apps":
+		{
+			"myapp": {
+				// The root directory that the app is installed at
+				"path":"/var/www/myapp",
+				// Supports: Catalyst
+				// Case sensitive.
+				"type":"Catalyst",
+				// The max number of processes to use for this app
+				"processes":4,
+				// The location of the server process file
+				"serverFile":"/tmp/myapp.socket",
+				// Any environment variables you want set in the environment of
+				// this application
+				"ENV": {},
+			},
+		},
+	}
+
+	// vi: set ft=javascript :
+
+=head1 HELP/SUPPORT
+
+If you need additional help, please visit the website at
+L<http://random.zerodogg.org/fcgim>
+
+=head1 BUGS AND LIMITATIONS
+
+If you find a bug, please report it at L<http://random.zerodogg.org/fcgim/bugs>
+
+=head1 AUTHOR
+
+B<fcgim> is written by Eskild Hustvedt I<<code @tt zerodogg d.t org>>
+
+=head1 FILES
+
+=over
+
+=item I</etc/fcgim.conf>
+
+The fcgim configuration file
+
+=back
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright (C) Eskild Hustvedt 2010
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see L<http://www.gnu.org/licenses/>.
