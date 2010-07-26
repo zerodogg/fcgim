@@ -500,7 +500,7 @@ I</etc/fcgim.conf>.
 			"myapp": {
 				// The root directory that the app is installed at
 				"path":"/var/www/myapp",
-				// Supports: Catalyst
+				// Supports: Catalyst, PHP
 				// Case sensitive.
 				"type":"Catalyst",
 				// The max number of processes to use for this app
