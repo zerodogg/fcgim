@@ -39,6 +39,7 @@ sub startApp
 		$self->msg('alreadyRunning');
 	}
 
+    $self->preparePIDFile($self->app->{PIDFile});
 	my $r = $self->cmd($self->script,'--listen',$self->app->{serverFile},'--nproc',$self->app->{processes},'--pidfile',$self->app->{PIDFile},'--daemon');
 	if ($r != 0)
 	{
@@ -55,9 +56,9 @@ sub stopApp
 	$self->msg('stopping');
 	for my $l (1..10)
 	{
-		if ($l < 5)
+		if ($l > 5)
 		{
-			$self->msg('stopinsist') if $l == 5;
+			$self->msg('stopinsist') if $l == 6;
 			kill(9,$PID);
 		}
 		else
@@ -86,14 +87,17 @@ sub restartApp
 	my $tmpL = main::tempfile();
 	my $tmpP = main::tempfile();
 	$self->msg('testinstance');
+    $self->preparePIDFile($tmpP);
+    unlink($tmpL);
 	my $r = $self->cmd($self->script,'--listen',$tmpL,'--nproc',1,'--pidfile',$tmpP,'--daemon');
-	$self->killPID($tmpP);
-	unlink($tmpL); unlink($tmpP);
 
-	if ($r != 0)
+	if ($r != 0 || !$self->getPID($tmpP))
 	{
 		$self->msg('testinstance_error');
 	}
+
+	$self->killPID($tmpP);
+	unlink($tmpL); unlink($tmpP);
 
 	$self->msg('done');
 	
