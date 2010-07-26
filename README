@@ -1,0 +1,11 @@
+fcgim - [F]ast[CGI] application [m]anager
+
+fcgim is a FastCGI application manager. It handles starting/stopping/restarting
+many different FastCGI instances and provides a simple initscript-like interface
+to performing actions on them.
+
+Currently it only supports Catalyst FastCGI applications, but adding support for
+new types of applications is simple, and can be done in roughly 100 lines of
+code (including comments). See ./lib/FCGIM/Methods/Catalyst.pm for an example.
+
+Report bugs to http://github.com/zerodogg/fcgim/issues
