@@ -39,13 +39,16 @@ my $cmdOutFile;
 
 main();
 
+# Purpose: Main sub, handles initialization, command-line parsing etc.
 sub main
 {
+    # Run cmdHelper if requested, this is only used internally
 	if (defined($ARGV[0]) && $ARGV[0] eq 'cmdHelper')
 	{
 		cmdHelper();
 	}
 
+    # Load the config file, if errors occur we die()
 	loadConfig($confFile);
 
 	my $app = shift(@ARGV);
@@ -53,19 +56,25 @@ sub main
 
 	my $usage = "Usage: $appN [APP or all] [COMMAND]\nSee \"$appN --help\" for more information.\n";
 
+    # Flush STDOUT immediately
 	$| = 1;
 
+    # If we have no params, output usage and exit
 	if(not defined $app)
 	{
         print $usage;
         exit(0);
 	}
 
+    # Handle --help
 	if ($app =~ /^(--?help|-h)$/)
 	{
 		fullUsage();
 		exit(0);
 	}
+    # If no command was supplied, check if we requested either of the commands that
+    # work without apps, if so, assume command=$app app=all.
+    # Otherwise display usage info.
 	if(not defined $command)
 	{
         if (defined $app && $app =~ /^(status|restartdead)$/)
@@ -81,6 +90,7 @@ sub main
 
 	if(not defined $config->{apps}->{$app} and not $app eq 'all')
 	{
+        # Detect reversed parameters
         if ($config->{apps}->{$command})
         {
             die("$app: unknown application\nMaybe you meant \"$appN $command $app\"?\n");
@@ -91,11 +101,13 @@ sub main
         }
 	}
 
+    # Create our data dir
 	if(not -d $config->{fcgim}->{fcgimTempPath})
 	{
 		mkpath($config->{fcgim}->{fcgimTempPath}) or die("Failed to create $config->{fcgim}->{fcgimTempPath}: $!\n");
 	}
 
+    # Handle all
 	if ($app eq 'all')
 	{
 		foreach my $e (keys %{$config->{apps}})
@@ -103,6 +115,7 @@ sub main
 			actionHandler($command,$e);
 		}
 	}
+    # Single app
 	else
 	{
 		actionHandler($command,$app);
@@ -111,6 +124,7 @@ sub main
 	exit(0);
 }
 
+# Purpose: Display the full usage information
 sub fullUsage
 {
 	print "Usage: $appN [APP] [COMMAND]\n";
@@ -126,14 +140,17 @@ sub fullUsage
     print "   APP=all\n";
 }
 
+# Purpose: Handle an action for a single application
 sub actionHandler
 {
 	my $action = shift;
 	my $app = shift;
 
+    # Fetch config and object
 	$app = getAppConfig($app);
 	my $object = getObject($app);
 
+    # Handle actions
 	if   ($action eq 'start')
 	{
 		$object->start();
@@ -160,6 +177,7 @@ sub actionHandler
 	}
 }
 
+# Purpose: Load the configuration file
 sub loadConfig
 {
 	my $file = shift;
@@ -229,34 +247,22 @@ sub loadConfig
 	}
 }
 
-sub appStart
-{
-}
-
-sub appStop
-{
-}
-
-sub appRestart
-{
-}
-
-sub appStatus
-{
-}
-
+# Purpose: Run a command, wraps system()
 sub cmd
 {
 	my $dropToGID = shift;
 	my $dropToPID = shift;
+    # Use cmdhelper if needed
 	if(defined $dropToPID and defined $dropToGID)
 	{
 		unshift(@_,$0,'cmdHelper',$dropToGID,$dropToPID);
 	}
+    # Redirect output
 	if(not $cmdOutFile)
 	{
 		$cmdOutFile = tempfile(UNLINK => 1);
 	}
+    # An invalid warning is emitted here, so disable temporarily
 	no warnings;
 	open(SAVED_OUT,">&STDOUT");
     open(SAVED_ERR,">&STDERR");
@@ -269,6 +275,7 @@ sub cmd
     return $ret;
 }
 
+# Purpose: Get output from a previous cmd()
 sub getCmdOutput
 {
 	if(not defined $cmdOutFile or not -e $cmdOutFile)
@@ -284,11 +291,7 @@ sub getCmdOutput
 	return $data;
 }
 
-sub getStatus
-{
-	my $app = shift;
-}
-
+# Purpose: Get an object for an app
 sub getObject
 {
 	my $app = shift;
@@ -302,10 +305,12 @@ sub getObject
 	return $o;
 }
 
+# Purpose: Get the config for a specific app
 sub getAppConfig
 {
 	my $app = shift;
 
+    # Do a deep clone
 	my $appConf = dclone($config->{apps}->{$app});
 
 	# Generate/copy defaults as needed
@@ -326,6 +331,7 @@ sub getAppConfig
 	return $appConf;
 }
 
+# Purpose: Wrapper around File::Temp::tempfile
 sub tempfile
 {
 	my ($fh,$fnam) = File::Temp::tempfile(@_);
@@ -333,6 +339,7 @@ sub tempfile
 	return $fnam;
 }
 
+# Purpose: A helper used by fcgim to drop priviliges when starting apps
 sub cmdHelper
 {
 	shift(@ARGV);

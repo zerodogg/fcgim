@@ -1,11 +1,29 @@
+# fcgim - FastCGI application manager
+# Base application type class
+# Copyright (C) Eskild Hustvedt 2010
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package FCGIM::Methods::Base;
 use Any::Moose;
 
+# Application config
 has 'app' => (
 	is => 'rw',
 	isa => 'HashRef',
 	required => 1,
 	);
+# fcgim config
 has 'fullConfig' => (
     is => 'rw',
     isa => 'HashRef',
@@ -18,6 +36,7 @@ use constant {
 	STATUS_DEAD    => 3,
 };
 
+# Purpose: Start an app
 sub start
 {
 	my $self = shift;
@@ -30,6 +49,7 @@ sub start
 	$self->startApp();
 }
 
+# Purpose: Stop an app
 sub stop
 {
 	my $self = shift;
@@ -49,6 +69,7 @@ sub stop
 	}
 }
 
+# Purpose: Restart an app
 sub restart
 {
 	my $self = shift;
@@ -68,6 +89,7 @@ sub restart
 	}
 }
 
+# Purpose: Restart an app if it is dead
 sub restartDead
 {
     my $self = shift;
@@ -89,15 +111,7 @@ sub restartDead
     return;
 }
 
-sub killPID
-{
-	my $self = shift;
-	my $PID = shift;
-	$PID = $self->getPID($PID);
-    die("killPID() failed to locate any PID to kill, bailing out\n") if not defined $PID;
-	kill(15,$PID);
-}
-
+# Purpose: Display status info for an app
 sub status
 {
 	my $self = shift;
@@ -123,6 +137,18 @@ sub status
     printf($fmt,$self->name,$outStat);
 }
 
+# Purpose: Kill a PID
+sub killPID
+{
+	my $self = shift;
+	my $PID = shift;
+	$PID = $self->getPID($PID);
+    # Bail out if we have no PID
+    die("killPID() failed to locate any PID to kill, bailing out\n") if not defined $PID;
+	kill(15,$PID);
+}
+
+# Purpose: Get the status of an app
 sub getStatus
 {
 	my $self = shift;
@@ -138,6 +164,7 @@ sub getStatus
 	return STATUS_DEAD;
 }
 
+# Purpose: Wrapper around main::cmd() and system()
 sub cmd
 {
 	my $self = shift;
@@ -154,6 +181,7 @@ sub cmd
 
     # Set environment
     my %savedENV;
+    # Global environment settings from the fcgim.conf
     if(defined $self->fullConfig->{fcgim}->{ENV} && %{$self->fullConfig->{fcgim}->{ENV}} && keys(%{$self->fullConfig->{fcgim}->{ENV}}))
     {
         foreach my $k (keys(%{$self->fullConfig->{fcgim}->{ENV}}))
@@ -162,6 +190,7 @@ sub cmd
             $ENV{$k} = $self->fullConfig->{fcgim}->{ENV}->{$k};
         }
     }
+    # App-specific environment settings from this apps config
     if(defined $self->app->{ENV} && %{$self->app->{ENV}} && keys(%{$self->app->{ENV}}))
     {
         foreach my $k (keys(%{$self->app->{ENV}}))
@@ -171,6 +200,7 @@ sub cmd
         }
     }
 
+    # Run the command, dropping priviliges if needed
     my $ret;
 	if ( $self->app->{runAsUID} != $pid || $self->app->{runAsGID} != $gid )
 	{
@@ -181,6 +211,7 @@ sub cmd
         $ret = main::cmd(undef,undef,@_);
     }
 
+    # Reset environment
     foreach my $k (keys(%savedENV))
     {
         $ENV{$k} = $savedENV{$k};
@@ -188,6 +219,7 @@ sub cmd
     return $ret;
 }
 
+# Purpose: Check if a PID is still running
 sub pidRunning
 {
 	my $self = shift;
@@ -208,6 +240,10 @@ sub pidRunning
 	return;
 }
 
+# Purpose: Retrieve a PID
+# If supplied with an INT, assumes that is the PID
+# If supplied with a string, assumes that is the path to a PID file and reads that file
+# If not supplied with anything, assumes you want to read the default PID file for the current app
 sub getPID
 {
 	my $self = shift;
@@ -227,12 +263,14 @@ sub getPID
 	return $PID;
 }
 
+# Purpose: Get the name of the current app
 sub name
 {
 	my $self = shift;
 	return $self->app->{name};
 }
 
+# Purpose: Output a preset message, used by subclasses
 sub msg
 {
 	my $self = shift;
@@ -292,6 +330,7 @@ sub msg
 	}
 }
 
+# Purpose: Prepare (set perms etc.) a pid file
 sub preparePIDFile
 {
     my $self = shift;
@@ -301,4 +340,5 @@ sub preparePIDFile
     chown($self->app->{runAsUID},$self->app->{runAsGID},$file);
 }
 
+__PACKAGE__->meta->make_immutable;
 1;
