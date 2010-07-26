@@ -539,6 +539,10 @@ The fcgim configuration file
 
 =back
 
+=head1 SEE ALSO
+
+L<Catalyst>, L<php-cgi(1)>, L<http://www.fastcgi.com/>
+
 =head1 LICENSE AND COPYRIGHT
 
 Copyright (C) Eskild Hustvedt 2010
