@@ -80,24 +80,26 @@ sub killPID
 sub status
 {
 	my $self = shift;
-	print $self->name." status: ";
+    my $fmt = "%-25s: %s\n";
+    my $outStat;
 	my $status = $self->getStatus();
 	if ($status == STATUS_RUNNING)
 	{
-		print "up and running (PID ".$self->getPID().")\n";
+		$outStat = "up and running (PID ".$self->getPID().")";
 	}
 	elsif($status == STATUS_STOPPED)
 	{
-		print "stopped\n";
+        $outStat = 'stopped';
 	}
 	elsif($status == STATUS_DEAD)
 	{
-		print "DEAD!\n";
+        $outStat = 'DEAD!';
 	}
 	else
 	{
-		print "UNKNOWN!\n";
+        $outStat = 'UNKNOWN!';
 	}
+    printf($fmt,$self->name,$outStat);
 }
 
 sub getStatus
