@@ -119,9 +119,9 @@ sub cmd
 	}
 	if ($self->app->{runAsPID} != $> || $self->app->{runAsGID} != $) )
 	{
-		unshift(@_,'sudo','-n','-u','#'.$self->app->{runAsPID},'-g','#'.$self->app->{runAsGID},'--');
+		return main::cmd($self->app->{runAsGID},$self->app->{runAsUID},@_);
 	}
-	return main::cmd(@_);
+	return main::cmd(undef,undef,@_);
 }
 
 sub pidRunning

@@ -22,6 +22,7 @@ use Getopt::Long;
 use Storable qw(dclone);
 use File::Path qw(mkpath);
 use File::Temp;
+use POSIX qw(setgid setuid);
 use FindBin;
 use lib "$FindBin::RealBin/lib/";
 use constant {
@@ -38,6 +39,11 @@ main();
 
 sub main
 {
+	if ($ARGV[0] eq 'cmdHelper')
+	{
+		cmdHelper();
+	}
+
 	loadConfig($confFile);
 
 	my $command = shift(@ARGV);
@@ -166,7 +172,7 @@ sub loadConfig
 		die("Failed to parse config file: $e$extra\n");
 	}
 
-	foreach my $appReq (qw(runAsPID runAsGID))
+	foreach my $appReq (qw(runAsUID runAsGID))
 	{
 		if(not defined($config->{fcgim}->{$appReq}) or not length($config->{fcgim}->{$appReq}))
 		{
@@ -214,6 +220,12 @@ sub appStatus
 
 sub cmd
 {
+	my $dropToGID = shift;
+	my $dropToPID = shift;
+	if(defined $dropToPID and defined $dropToGID)
+	{
+		unshift(@_,$0,'cmdHelper',$dropToGID,$dropToPID);
+	}
 	if(not $cmdOutFile)
 	{
 		$cmdOutFile = tempfile(UNLINK => 1);
@@ -232,7 +244,7 @@ sub cmd
 
 sub getCmdOutput
 {
-	if(defined $cmdOutFile or not -e $cmdOutFile)
+	if(not defined $cmdOutFile or not -e $cmdOutFile)
 	{
 		return '';
 	}
@@ -270,7 +282,7 @@ sub getAppConfig
 	my $appConf = dclone($config->{apps}->{$app});
 
 	# Generate/copy defaults as needed
-	foreach my $copyDefault (qw(runAsPID runAsGID))
+	foreach my $copyDefault (qw(runAsUID runAsGID))
 	{
 		if(not defined $appConf->{$copyDefault})
 		{
@@ -292,4 +304,17 @@ sub tempfile
 	my ($fh,$fnam) = File::Temp::tempfile(@_);
 	close($fh);
 	return $fnam;
+}
+
+sub cmdHelper
+{
+	shift(@ARGV);
+	my $uid = shift(@ARGV);
+	my $gid = shift(@ARGV);
+	setgid($gid) or die("Failed to setgid($gid): $!\n");
+	setuid($uid) or die("Failed to setuid($uid): $!\n");
+
+	die("Command missing\n") if not @ARGV;
+
+	exec(@ARGV);
 }
