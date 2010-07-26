@@ -316,5 +316,5 @@ sub cmdHelper
 
 	die("Command missing\n") if not @ARGV;
 
-	exec(@ARGV);
+	exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
 }
