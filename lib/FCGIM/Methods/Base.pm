@@ -177,6 +177,20 @@ sub status
     printf($fmt,$self->name,$outStat);
 }
 
+# Purpose: Perform a sanity check if possible
+sub sanityCheck
+{
+	my $self = shift;
+	if ($self->can('sanityCheckApp'))
+	{
+		$self->sanityCheckApp();
+	}
+	else
+	{
+		print $self->name.": is of type \"".$self->app->{type}."\" that does not support sanity checking.\n";
+	}
+}
+
 # Purpose: Kill a PID
 sub killPID
 {
@@ -335,11 +349,16 @@ sub msg
 	{
 		print 'Running a test instance of '.$self->name.'...';
 	}
-	elsif($msg eq 'testinstance_error')
+	elsif($msg eq 'testinstance_error' || $msg eq 'testinstance_error_restart')
 	{
         print "failed\n";
 		print "Test startup of new FastCGI instance failed. Something is wrong with the new\n";
-		print "instance. The old one is still running. Output from attempt to start:\n\n";
+		print "instance. ";
+		if ($msg eq 'testinstance_error_restart')
+		{
+			print "The old one is still running. ";
+		}
+		print "Output from attempt to start:\n\n";
 		print main::getCmdOutput();
 		exit(1);
 	}
@@ -379,9 +398,9 @@ sub preparePIDFile
 {
     my $self = shift;
     my $file = shift;
-    open(my $pf,'>',$file) or die("Failed to create PID file ".$file.": $!\n");
+    open(my $pf,'>',$file) or die("Failed to create PID file $file: $!\n");
     close($pf);
-    chown($self->app->{runAsUID},$self->app->{runAsGID},$file);
+    chown($self->app->{runAsUID},$self->app->{runAsGID},$file) or die("Failed to set permissions on PID file $file: $!\n");
 }
 
 __PACKAGE__->meta->make_immutable;

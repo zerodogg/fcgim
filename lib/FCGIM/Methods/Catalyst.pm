@@ -120,6 +120,16 @@ sub stopApp
 sub restartApp
 {
 	my $self = shift;
+	$self->sanityCheckApp(true);
+	$self->stopApp();
+	$self->startApp();
+}
+
+# Purpose: Perform a sanity check
+sub sanityCheckApp
+{
+	my $self = shift;
+	my $restartMode = shift;
 	my $tmpL = main::tempfile();
 	my $tmpP = main::tempfile();
 	$self->msg('testinstance');
@@ -129,16 +139,20 @@ sub restartApp
 
 	if ($r != 0 || !$self->getPID($tmpP))
 	{
-		$self->msg('testinstance_error');
+		if ($restartMode)
+		{
+			$self->msg('testinstance_error_restart');
+		}
+		else
+		{
+			$self->msg('testinstance_error');
+		}
 	}
 
 	$self->killPID($tmpP);
 	unlink($tmpL); unlink($tmpP);
 
 	$self->msg('works');
-	
-	$self->stopApp();
-	$self->startApp();
 }
 
 __PACKAGE__->meta->make_immutable;

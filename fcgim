@@ -143,6 +143,7 @@ sub fullUsage
 	print "stop          - stop an application\n";
 	print "restart       - restart an application\n";
 	print "status *      - display status information for an application\n";
+	print "sanitycheck   - perform a simple sanity check on an application\n";
 	print "restartdead * - restart an application if it has died\n";
     print "\n";
     print "*) Can be used without supplying an [APP] - in which case it assumes\n";
@@ -180,6 +181,10 @@ sub actionHandler
     {
         $object->restartDead();
     }
+	elsif($action eq 'sanitycheck')
+	{
+		$object->sanityCheck();
+	}
 	else
 	{
 		die("Unknown action \"$action\"\n");
@@ -445,12 +450,9 @@ Stops an application if it is currently running.
 
 Restarts an application.
 
-For those application types that support it, fcgim will launch a test version of the
-application before the actual restart to make sure it starts up correctly
-before restarting the currently running instance - if that fails, the one
-currently running will be kept, if it succeeds it will proceed and stop then
-start the application. Currently, only the Catalyst application type supports
-this.
+For those applications that supports it, fcgim will run a sanitycheck (see the
+I<sanitycheck> command) before stopping the running instance. If the
+sanitycheck fails, fcgim will refuse to restart the application.
 
 =item B<status>
 
@@ -458,6 +460,17 @@ Display status (running/stopped/dead) information for an application.
 
 This can be used without any [APPLICATION] parameter, in which case it will
 output status information for all applications.
+
+=item B<sanitycheck>
+
+Launch a test version of the application to make sure it starts up correctly.
+This instance will be shut down if it successfully starts up. It does
+not use the socket or PID file of the app, so as long as the application
+does not perform any destructive operations during startup, it should not
+interfere with running applications.
+
+Not all types support this. Currently only Catalyst applications support
+sanitycheck.
 
 =item B<restartdead>
 
