@@ -64,11 +64,13 @@ sub startApp
     $self->preparePIDFile($self->app->{PIDFile});
 	$ENV{PHP_FCGI_CHILDREN} = $self->app->{processes};
 	my $r = $self->cmd($self->app->{PIDFile},$self->php5bin,'-b',$self->app->{serverFile});
+	delete($ENV{PHP_FCGI_CHILDREN});
 	if ($r != 0)
 	{
 		$self->msg('start_error');
 	}
 	$self->msg('pidDone');
+	return 1;
 }
 
 # Purpose: Check for a file in path

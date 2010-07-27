@@ -80,6 +80,7 @@ sub startApp
 		$self->msg('start_error');
 	}
 	$self->msg('pidDone');
+	return true;
 }
 
 # Purpose: Stop the catalyst app
@@ -113,7 +114,7 @@ sub stopApp
 	unlink($self->app->{PIDFile});
 	unlink($self->app->{serverFile});
 	$self->msg('done');
-	return 1;
+	return true;
 }
 
 # Purpose: Restart the catalyst app, running a test instance first
@@ -123,6 +124,7 @@ sub restartApp
 	$self->sanityCheckApp(true);
 	$self->stopApp();
 	$self->startApp();
+	return true;
 }
 
 # Purpose: Perform a sanity check
@@ -153,6 +155,7 @@ sub sanityCheckApp
 	unlink($tmpL); unlink($tmpP);
 
 	$self->msg('works');
+	return true;
 }
 
 __PACKAGE__->meta->make_immutable;

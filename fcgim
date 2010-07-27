@@ -31,7 +31,6 @@ use constant {
 	false          => undef,
 };
 
-my %methods;
 my $appN = basename($0);
 my $config;
 my $confFile = '/etc/fcgim.conf';
@@ -65,34 +64,34 @@ sub main
 			exit(0);
 		}
 	}
-    # If we have no params, output usage and exit
+	# If we have no params, output usage and exit
 	else
 	{
-        print $usage;
-        exit(0);
+		print $usage;
+		exit(0);
 	}
 
-    # Load the config file, if errors occur we die()
+	# Load the config file, if errors occur we die()
 	loadConfig($confFile);
 
 	my $app = shift(@ARGV);
 	my $command = shift(@ARGV);
 
-    # Flush STDOUT immediately
+	# Flush STDOUT immediately
 	$| = 1;
 
-    # If no command was supplied, check if we requested either of the commands that
-    # work without apps, if so, assume command=$app app=all.
-    # Otherwise display usage info.
+	# If no command was supplied, check if we requested either of the commands that
+	# work without apps, if so, assume command=$app app=all.
+	# Otherwise display usage info.
 	if(not defined $command)
 	{
-        if (defined $app && $app =~ /^(status|restartdead)$/)
-        {
-            $command = $app;
-            $app = 'all';
-        }
-        else
-        {
+		if (defined $app && $app =~ /^(status|restartdead)$/)
+		{
+			$command = $app;
+			$app = 'all';
+		}
+		else
+		{
 			if ($app =~ /^(start|restart(dead)?|stop|sanitycheck|status)$/)
 			{
 				die("Error: [APP] parameter missing.\n\n".$usage);
@@ -101,29 +100,29 @@ sub main
 			{
 				die("Error: command missing.\n\n".$usage);
 			}
-        }
+		}
 	}
 
 	if(not defined $config->{apps}->{$app} and not $app eq 'all')
 	{
-        # Detect reversed parameters
-        if ($config->{apps}->{$command})
-        {
-            die("$app: unknown application\nMaybe you meant \"$appN $command $app\"?\n");
-        }
-        else
-        {
-            die("$app: unknown application\n");
-        }
+		# Detect reversed parameters
+		if ($config->{apps}->{$command})
+		{
+			die("$app: unknown application\nMaybe you meant \"$appN $command $app\"?\n");
+		}
+		else
+		{
+			die("$app: unknown application\n");
+		}
 	}
 
-    # Create our data dir
+	# Create our data dir
 	if(not -d $config->{fcgim}->{fcgimTempPath})
 	{
 		mkpath($config->{fcgim}->{fcgimTempPath}) or die("Failed to create $config->{fcgim}->{fcgimTempPath}: $!\n");
 	}
 
-    # Handle all
+	# Handle all
 	if ($app eq 'all')
 	{
 		foreach my $e (keys %{$config->{apps}})
@@ -131,7 +130,7 @@ sub main
 			actionHandler($command,$e);
 		}
 	}
-    # Single app
+	# Single app
 	else
 	{
 		actionHandler($command,$app);
@@ -152,9 +151,9 @@ sub fullUsage
 	print "status *      - display status information for an application\n";
 	print "sanitycheck   - perform a simple sanity check on an application\n";
 	print "restartdead * - restart an application if it has died\n";
-    print "\n";
-    print "*) Can be used without supplying an [APP] - in which case it assumes\n";
-    print "   APP=all\n";
+	print "\n";
+	print "*) Can be used without supplying an [APP] - in which case it assumes\n";
+	print "   APP=all\n";
 }
 
 # Purpose: Handle an action for a single application
@@ -163,11 +162,11 @@ sub actionHandler
 	my $action = shift;
 	my $app = shift;
 
-    # Fetch config and object
+	# Fetch config and object
 	$app = getAppConfig($app);
 	my $object = getObject($app);
 
-    # Handle actions
+	# Handle actions
 	if   ($action eq 'start')
 	{
 		$object->start();
@@ -184,10 +183,10 @@ sub actionHandler
 	{
 		$object->status();
 	}
-    elsif($action eq 'restartdead')
-    {
-        $object->restartDead();
-    }
+	elsif($action eq 'restartdead')
+	{
+		$object->restartDead();
+	}
 	elsif($action eq 'sanitycheck')
 	{
 		$object->sanityCheck();
@@ -216,7 +215,7 @@ sub loadConfig
 		$content .= $line;
 	}
 	close($i) or warn("Failed to close filehandle for \"$file\": $!\n");
-	
+
 	# Allow commas at the end of lists in the config file
 	$content =~ s/,}/}/g;
 
@@ -224,9 +223,10 @@ sub loadConfig
 	{
 		$config = JSON::Any->jsonToObj($content) or die("Failed to parse the config file.\n");
 		1;
-	};
-	if (my $e = $@)
+	}
+		or do
 	{
+		my $e = $@;
 		my $extra = '';
 		if ($content =~ /\'/)
 		{
@@ -236,7 +236,7 @@ sub loadConfig
 		chomp($e);
 
 		die("Failed to parse config file: $e$extra\n");
-	}
+	};
 
 	foreach my $appReq (qw(runAsUID runAsGID))
 	{
@@ -274,7 +274,7 @@ sub cmd
 	my $dropToGID = shift;
 	my $dropToPID = shift;
 	my $daemonize = shift;
-    # Use cmdhelper if needed
+	# Use cmdhelper if needed
 	if(defined $dropToPID and defined $dropToGID)
 	{
 		unshift(@_,$0,'cmdHelper','setID',$dropToGID,$dropToPID);
@@ -283,22 +283,22 @@ sub cmd
 	{
 		unshift(@_,$0,'cmdHelper','daemonize',$daemonize);
 	}
-    # Redirect output
+	# Redirect output
 	if(not $cmdOutFile)
 	{
 		$cmdOutFile = tempfile(UNLINK => 1);
 	}
-    # An invalid warning is emitted here, so disable temporarily
+	# An invalid warning is emitted here, so disable temporarily
 	no warnings;
-	open(SAVED_OUT,">&STDOUT");
-    open(SAVED_ERR,">&STDERR");
+	open(SAVED_OUT,'>&STDOUT');
+	open(SAVED_ERR,'>&STDERR');
 	open(STDOUT,'>',$cmdOutFile) or die("Failed to redirect STDOUT to $cmdOutFile: $!\n");
 	open(STDERR,'>',$cmdOutFile) or die("Failed to redirect STDERR to $cmdOutFile: $!\n");
-    my $ret = system(@_);
-    open(STDOUT,">&SAVED_OUT");
-    open(STDERR,">&SAVED_ERR");
+	my $ret = system(@_);
+	open(STDOUT,'>&SAVED_OUT');
+	open(STDERR,'>&SAVED_ERR');
 	use warnings;
-    return $ret;
+	return $ret;
 }
 
 # Purpose: Get output from a previous cmd()
@@ -352,7 +352,7 @@ sub getAppConfig
 {
 	my $app = shift;
 
-    # Do a deep clone
+	# Do a deep clone
 	my $appConf = dclone($config->{apps}->{$app});
 
 	# Generate/copy defaults as needed
@@ -395,7 +395,7 @@ sub cmdHelper
 
 		die("Command missing\n") if not @ARGV;
 
-		exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
+		exec(@ARGV) or die('Failed to exec '.join(' ',@ARGV).": $!\n");
 	}
 	elsif($type eq 'daemonize')
 	{
@@ -412,7 +412,7 @@ sub cmdHelper
 		open(STDIN, '<', '/dev/null');
 		open(STDOUT, '>>', '/dev/null');
 		open(STDERR, '>>', '/dev/null');
-		exec(@ARGV) or die("Failed to exec ".join(' ',@ARGV).": $!\n");
+		exec(@ARGV) or die('Failed to exec '.join(' ',@ARGV).": $!\n");
 	}
 	else
 	{

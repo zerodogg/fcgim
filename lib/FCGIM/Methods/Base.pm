@@ -47,6 +47,7 @@ sub start
 		return;
 	}
 	$self->startApp();
+	return 1;
 }
 
 # Purpose: Stop an app
@@ -98,7 +99,7 @@ sub stop
 		if ($unlinkErr)
 		{
 			print "The server was successfully stopped, but fcgim could not remove the PID file\n";
-			print "at ".$self->app->{PIDFile}.": $unlinkErr\n";
+			print 'at '.$self->app->{PIDFile}.": $unlinkErr\n";
 			if ($< != 0 || $> != 0)
 			{
 				print "You may need to run fcgim as root.\n";
@@ -107,6 +108,7 @@ sub stop
 			print "PID file is removed.\n";
 		}
 	}
+	return 1;
 }
 
 # Purpose: Restart an app
@@ -127,13 +129,14 @@ sub restart
 		$self->stop();
 		$self->start();
 	}
+	return 1;
 }
 
 # Purpose: Restart an app if it is dead
 sub restartDead
 {
     my $self = shift;
-    print "Checking ".$self->name."...";
+    print 'Checking '.$self->name.'...';
 	my $status = $self->getStatus();
 	if ($status == STATUS_RUNNING)
 	{
@@ -160,7 +163,7 @@ sub status
 	my $status = $self->getStatus();
 	if ($status == STATUS_RUNNING)
 	{
-		$outStat = "up and running (PID ".$self->getPID().")";
+		$outStat = 'up and running (PID '.$self->getPID().')';
 	}
 	elsif($status == STATUS_STOPPED)
 	{
@@ -175,6 +178,7 @@ sub status
         $outStat = 'UNKNOWN!';
 	}
     printf($fmt,$self->name,$outStat);
+    return 1;
 }
 
 # Purpose: Perform a sanity check if possible
@@ -187,8 +191,9 @@ sub sanityCheck
 	}
 	else
 	{
-		print $self->name.": is of type \"".$self->app->{type}."\" that does not support sanity checking.\n";
+		print $self->name.': is of type "'.$self->app->{type}.'" that does not support sanity checking.'."\n";
 	}
+    return 1;
 }
 
 # Purpose: Kill a PID
@@ -200,6 +205,7 @@ sub killPID
     # Bail out if we have no PID
     die("killPID() failed to locate any PID to kill, bailing out\n") if not defined $PID;
 	kill(15,$PID);
+    return 1;
 }
 
 # Purpose: Get the status of an app
@@ -335,15 +341,15 @@ sub msg
 	my $msg = shift;
 	if ($msg eq 'stopping')
 	{
-		print 'Stopping '.$self->name."...";
+		print 'Stopping '.$self->name.'...';
 	}
 	elsif($msg eq 'stopinsist')
 	{
-		print "failed to stop when asked nicely, forcing it to stop (sending SIGKILL)...";
+		print 'failed to stop when asked nicely, forcing it to stop (sending SIGKILL)...';
 	}
 	elsif($msg eq 'starting')
 	{
-		print 'Starting '.$self->name."...";
+		print 'Starting '.$self->name.'...';
 	}
 	elsif($msg eq 'testinstance')
 	{
@@ -353,10 +359,10 @@ sub msg
 	{
         print "failed\n";
 		print "Test startup of new FastCGI instance failed. Something is wrong with the new\n";
-		print "instance. ";
+		print 'instance. ';
 		if ($msg eq 'testinstance_error_restart')
 		{
-			print "The old one is still running. ";
+			print 'The old one is still running. ';
 		}
 		print "Output from attempt to start:\n\n";
 		print main::getCmdOutput();
@@ -371,7 +377,7 @@ sub msg
 	}
 	elsif($msg eq 'stop_error')
 	{
-		print "failed to stop PID ".$self->getPID()."\n";
+		print 'failed to stop PID '.$self->getPID()."\n";
 		exit(1);
 	}
 	elsif($msg eq 'alreadyRunning')
@@ -381,7 +387,7 @@ sub msg
 	}
 	elsif($msg eq 'pidDone')
 	{
-		print "done (PID ".$self->getPID().")\n";
+		print 'done (PID '.$self->getPID().")\n";
 	}
     elsif($msg eq 'works')
     {
@@ -391,6 +397,7 @@ sub msg
 	{
 		print "done\n";
 	}
+    return 1;
 }
 
 # Purpose: Prepare (set perms etc.) a pid file
@@ -401,6 +408,7 @@ sub preparePIDFile
     open(my $pf,'>',$file) or die("Failed to create PID file $file: $!\n");
     close($pf);
     chown($self->app->{runAsUID},$self->app->{runAsGID},$file) or die("Failed to set permissions on PID file $file: $!\n");
+    return 1;
 }
 
 __PACKAGE__->meta->make_immutable;
