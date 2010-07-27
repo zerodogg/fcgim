@@ -19,14 +19,14 @@ use Any::Moose;
 
 # Application config
 has 'app' => (
-	is => 'rw',
-	isa => 'HashRef',
+	is       => 'rw',
+	isa      => 'HashRef',
 	required => 1,
 	);
 # fcgim config
 has 'fullConfig' => (
-    is => 'rw',
-    isa => 'HashRef',
+    is       => 'rw',
+    isa      => 'HashRef',
     required => 1,
     );
 
