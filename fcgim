@@ -93,7 +93,14 @@ sub main
         }
         else
         {
-            die($usage);
+			if ($app =~ /^(start|restart(dead)?|stop|sanitycheck|status)$/)
+			{
+				die("Error: [APP] parameter missing.\n\n".$usage);
+			}
+			else
+			{
+				die("Error: command missing.\n\n".$usage);
+			}
         }
 	}
 
