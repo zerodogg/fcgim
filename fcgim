@@ -310,7 +310,7 @@ sub getObject
 {
 	my $app = shift;
 	my $type = $app->{type};
-	$type =~ s/\W//;
+	$type =~ s/\W//g;
 	if(not eval('use FCGIM::Methods::'.$type.';1;'))
 	{
 		my $e = $@;
