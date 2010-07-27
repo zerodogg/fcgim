@@ -60,7 +60,7 @@ sub stop
 	elsif($self->getStatus == STATUS_DEAD)
 	{
 		print "Already dead - removing pidfile.\n";
-		unlink($self->app->{PIDFile});
+		unlink($self->app->{PIDFile}) or warn('Failed to unlink pidfile '.$self->app->{PIDFile}.": $!\n");
 	}
 	else
 	{
@@ -88,9 +88,24 @@ sub stop
 		{
 			$self->msg('stop_error');
 		}
-		unlink($self->app->{PIDFile});
+		my $unlinkErr;
+		if (-e $self->app->{PIDFile})
+		{
+			unlink($self->app->{PIDFile}) or $unlinkErr = $!
+		}
 		unlink($self->app->{serverFile});
 		$self->msg('done');
+		if ($unlinkErr)
+		{
+			print "The server was successfully stopped, but fcgim could not remove the PID file\n";
+			print "at ".$self->app->{PIDFile}.": $unlinkErr\n";
+			if ($< != 0 || $> != 0)
+			{
+				print "You may need to run fcgim as root.\n";
+			}
+			print "\nfcgim will consider the application \"dead\" instead of \"stopped\" until the\n";
+			print "PID file is removed.\n";
+		}
 	}
 }
 
