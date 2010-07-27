@@ -313,9 +313,25 @@ sub getObject
 	$type =~ s/\W//;
 	if(not eval('use FCGIM::Methods::'.$type.';1;'))
 	{
-		die("Unknown type: $type\n");
+		my $e = $@;
+		if ($e =~ m{FCGIM/Methods/$type.pm\s+\w+\s+\@INC})
+		{
+			die("Unknown application type: $type\n");
+		}
+		else
+		{
+			$e =~ s/BEGIN\s+failed.*\n//g;
+			$e =~ s/Compilation\s+failed\s+in\s+require.*\n//g;
+			$e =~ s/\s+at\s+\(eval\s+\d+\)\s+line\s+\d+//;
+			die("Failed to load fcgim method file for \"$type\": $e");
+		}
 	}
 	my $o = eval('return FCGIM::Methods::'.$type.'->new(app => $app, fullConfig => $config)');
+	my $e = $@;
+	if(not $o)
+	{
+		die("Object construction for FCGIM::Methods::$type failed. This is a bug.\n$e");
+	}
 	return $o;
 }
 
@@ -391,6 +407,7 @@ sub cmdHelper
 		die("Unknown helper type \"$type\"\n");
 	}
 }
+
 __END__
 =encoding utf8
 
