@@ -238,14 +238,6 @@ sub loadConfig
 		die("Failed to parse config file: $e$extra\n");
 	};
 
-	foreach my $appReq (qw(runAsUID runAsGID))
-	{
-		if(not defined($config->{fcgim}->{$appReq}) or not length($config->{fcgim}->{$appReq}))
-		{
-			die("Required configuration option fcgim:$appReq not set\n");
-		}
-	}
-
 	if(not keys %{$config->{apps}})
 	{
 		die("No applications defined in config\n");
@@ -253,6 +245,14 @@ sub loadConfig
 	elsif(scalar(keys %{$config->{apps}}) == 1 && $config->{apps}->{app1})
 	{
 		die("You need to change the name of the first application to something other than \"app1\" to indicate that you have actually configured an application.\n");
+	}
+
+	foreach my $appReq (qw(runAsUID runAsGID))
+	{
+		if (!defined($config->{fcgim}->{$appReq}) || !length($config->{fcgim}->{$appReq}))
+		{
+			die("Required configuration option fcgim:$appReq not set\n");
+		}
 	}
 
 	foreach my $app (keys %{$config->{apps}})
