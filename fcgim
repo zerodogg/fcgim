@@ -249,7 +249,7 @@ sub loadConfig
 
 	foreach my $appReq (qw(runAsUID runAsGID))
 	{
-		if (!defined($config->{fcgim}->{$appReq}) || !length($config->{fcgim}->{$appReq}))
+		if (!isInt($config->{fcgim}->{$appReq}))
 		{
 			die("Required configuration option fcgim:$appReq not set\n");
 		}
@@ -259,8 +259,7 @@ sub loadConfig
 	{
 		foreach my $req (qw(path type processes serverFile))
 		{
-			my $e = $config->{apps}->{$app}->{$req};
-			if(not defined $e or not length($e))
+			if (!isStr($config->{apps}->{$app}->{$req}))
 			{
 				die("The configuration option \"$req\" for the application \"$app\" is not set\n");
 			}
@@ -379,6 +378,28 @@ sub tempfile
 	my ($fh,$fnam) = File::Temp::tempfile(@_);
 	close($fh);
 	return $fnam;
+}
+
+# Purpose: Check if a var is an integer
+sub isInt
+{
+	my $val = shift;
+	if(defined($val) && !ref($val) && $val =~ /^\d+$/)
+	{
+		return true;
+	}
+	return;
+}
+
+# Purpose: Check if a var is a string
+sub isStr
+{
+	my $val = shift;
+	if(defined($val) && !ref($val) && $val =~ /\w/)
+	{
+		return true;
+	}
+	return;
 }
 
 # Purpose: A helper used by fcgim to drop priviliges when starting apps
