@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package FCGIM::Methods::Base;
+use FCGIM::Constants;
 use Any::Moose;
 
 # Application config
@@ -30,12 +31,6 @@ has 'fullConfig' => (
     required => 1,
     );
 
-use constant {
-	STATUS_RUNNING => 1,
-	STATUS_STOPPED => 2,
-	STATUS_DEAD    => 3,
-};
-
 # Purpose: Start an app
 sub start
 {
@@ -43,7 +38,7 @@ sub start
 	die("startApp unimplemented in parent\n") if !$self->can('startApp');
 	if ($self->getStatus == STATUS_RUNNING)
 	{
-		print "Already running. Maybe you wanted to restart?\n";
+		printv(V_NORMAL,"Already running. Maybe you wanted to restart?\n");
 		return;
 	}
 	$self->startApp();
@@ -56,11 +51,11 @@ sub stop
 	my $self = shift;
 	if ($self->getStatus == STATUS_STOPPED)
 	{
-		print "Already stopped.\n";
+		printv(V_NORMAL,"Already stopped.\n");
 	}
 	elsif($self->getStatus == STATUS_DEAD)
 	{
-		print "Already dead - removing pidfile.\n";
+		printv(V_NORMAL,"Already dead - removing pidfile.\n");
 		unlink($self->app->{PIDFile}) or warn('Failed to unlink pidfile '.$self->app->{PIDFile}.": $!\n");
 	}
 	else
@@ -73,11 +68,12 @@ sub stop
 			if ($l > 5)
 			{
 				$self->msg('stopinsist') if $l == 6;
+				printv(V_VERBOSE,"Sending signal 9 (SIGKILL) to PID $PID\n");
 				kill(9,$PID);
 			}
 			else
 			{
-				kill(15,$PID);
+				$self->killPID($PID);
 			}
 
 			last if $self->getStatus != STATUS_RUNNING;
@@ -98,14 +94,14 @@ sub stop
 		$self->msg('done');
 		if ($unlinkErr)
 		{
-			print "The server was successfully stopped, but fcgim could not remove the PID file\n";
-			print 'at '.$self->app->{PIDFile}.": $unlinkErr\n";
+			printv(V_NORMAL,"The server was successfully stopped, but fcgim could not remove the PID file\n");
+			printv(V_NORMAL,'at '.$self->app->{PIDFile}.": $unlinkErr\n");
 			if ($< != 0 || $> != 0)
 			{
-				print "You may need to run fcgim as root.\n";
+				printv(V_NORMAL,"You may need to run fcgim as root.\n");
 			}
-			print "\nfcgim will consider the application \"dead\" instead of \"stopped\" until the\n";
-			print "PID file is removed.\n";
+			printv(V_NORMAL,"\nfcgim will consider the application \"dead\" instead of \"stopped\" until the\n");
+			printv(V_NORMAL,"PID file is removed.\n");
 		}
 	}
 	return 1;
@@ -117,7 +113,7 @@ sub restart
 	my $self = shift;
 	if ($self->getStatus != STATUS_RUNNING)
 	{
-		print "Application not running, just starting.\n";
+		printv(V_NORMAL,"Application not running, just starting.\n");
 		return $self->start();
 	}
 	elsif($self->can('restartApp'))
@@ -136,19 +132,19 @@ sub restart
 sub restartDead
 {
     my $self = shift;
-    print 'Checking '.$self->name.'...';
+    printv(V_NORMAL,'Checking '.$self->name.'...');
 	my $status = $self->getStatus();
 	if ($status == STATUS_RUNNING)
 	{
-        print "running ok\n";
+        printv(V_NORMAL,"running ok\n");
     }
     elsif($status == STATUS_STOPPED)
     {
-        print "stopped\n";
+        printv(V_NORMAL,"stopped\n");
     }
     else
     {
-        print "dead - restarting\n";
+        printv(V_NORMAL,"dead - restarting\n");
         $self->start();
     }
     return;
@@ -177,7 +173,7 @@ sub status
 	{
         $outStat = 'UNKNOWN!';
 	}
-    printf($fmt,$self->name,$outStat);
+    printv(V_NORMAL,sprintf($fmt,$self->name,$outStat));
     return 1;
 }
 
@@ -191,7 +187,7 @@ sub sanityCheck
 	}
 	else
 	{
-		print $self->name.': is of type "'.$self->app->{type}.'" that does not support sanity checking.'."\n";
+		printv(V_NORMAL,$self->name.': is of type "'.$self->app->{type}.'" that does not support sanity checking.'."\n");
 	}
     return 1;
 }
@@ -204,6 +200,7 @@ sub killPID
 	$PID = $self->getPID($PID);
     # Bail out if we have no PID
     die("killPID() failed to locate any PID to kill, bailing out\n") if not defined $PID;
+	printv(V_VERBOSE,"Sending signal 15 (SIGTERM) to PID $PID\n");
 	kill(15,$PID);
     return 1;
 }
@@ -341,61 +338,65 @@ sub msg
 	my $msg = shift;
 	if ($msg eq 'stopping')
 	{
-		print 'Stopping '.$self->name.'...';
+		printv(V_NORMAL,'Stopping '.$self->name.'...');
+		printv(V_VERBOSE,"\n");
 	}
 	elsif($msg eq 'stopinsist')
 	{
-		print 'failed to stop when asked nicely, forcing it to stop (sending SIGKILL)...';
+		printv(V_NORMAL,'failed to stop when asked nicely, forcing it to stop (sending SIGKILL)...');
+		printv(V_VERBOSE,"\n");
 	}
 	elsif($msg eq 'starting')
 	{
-		print 'Starting '.$self->name.'...';
+		printv(V_NORMAL,'Starting '.$self->name.'...');
+		printv(V_VERBOSE,"\n");
 	}
 	elsif($msg eq 'testinstance')
 	{
-		print 'Running a test instance of '.$self->name.'...';
+		printv(V_NORMAL,'Running a test instance of '.$self->name.'...');
+		printv(V_VERBOSE,"\n");
 	}
 	elsif($msg eq 'testinstance_error' || $msg eq 'testinstance_error_restart')
 	{
-        print "failed\n";
-		print "Test startup of new FastCGI instance failed. Something is wrong with the new\n";
-		print 'instance. ';
+        printv(V_NORMAL,"failed\n");
+		printv(V_NORMAL,"Test startup of new FastCGI instance failed. Something is wrong with the new\n");
+		printv(V_NORMAL,'instance. ');
 		if ($msg eq 'testinstance_error_restart')
 		{
-			print 'The old one is still running. ';
+			printv(V_NORMAL,'The old one is still running. ');
 		}
-		print "Output from attempt to start:\n\n";
-		print main::getCmdOutput();
+		printv(V_NORMAL,"Output from attempt to start:\n\n");
+		printv(V_NORMAL,main::getCmdOutput());
 		exit(1);
 	}
 	elsif($msg eq 'start_error')
 	{
-		print "failed\n";
-		print "Startup of FastCGI instance failed. Output from attempt to start:\n\n";
-		print main::getCmdOutput();
+		printv(V_NORMAL,"failed\n");
+		printv(V_NORMAL,"Startup of FastCGI instance failed. Output from attempt to start:\n\n");
+		printv(V_NORMAL,main::getCmdOutput());
 		exit(1);
 	}
 	elsif($msg eq 'stop_error')
 	{
-		print 'failed to stop PID '.$self->getPID()."\n";
+		printv(V_NORMAL,'failed to stop PID '.$self->getPID()."\n");
 		exit(1);
 	}
 	elsif($msg eq 'alreadyRunning')
 	{
-		print "already running\n";
+		printv(V_NORMAL,"already running\n");
 		exit(0);
 	}
 	elsif($msg eq 'pidDone')
 	{
-		print 'done (PID '.$self->getPID().")\n";
+		printv(V_NORMAL,'done (PID '.$self->getPID().")\n");
 	}
     elsif($msg eq 'works')
     {
-        print "works\n";
+        printv(V_NORMAL,"works\n");
     }
 	elsif($msg eq 'done')
 	{
-		print "done\n";
+		printv(V_NORMAL,"done\n");
 	}
     return 1;
 }
@@ -409,6 +410,13 @@ sub preparePIDFile
     close($pf);
     chown($self->app->{runAsUID},$self->app->{runAsGID},$file) or die("Failed to set permissions on PID file $file: $!\n");
     return 1;
+}
+
+sub printv
+{
+	# Allows method to work both as a function and method
+	shift if(ref($_[0]));
+	main::printv(@_);
 }
 
 __PACKAGE__->meta->make_immutable;

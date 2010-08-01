@@ -20,14 +20,7 @@
 package FCGIM::Methods::Catalyst;
 use Any::Moose;
 extends 'FCGIM::Methods::Base';
-
-use constant {
-	STATUS_RUNNING => 1,
-	STATUS_STOPPED => 2,
-	STATUS_DEAD    => 3,
-	true => 1,
-	false => 0,
-};
+use FCGIM::Constants;
 
 has 'fcgiScript' => (
 	is => 'rw',

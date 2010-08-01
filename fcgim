@@ -26,15 +26,16 @@ use POSIX qw(setgid setuid setsid);
 use File::Basename qw(basename);
 use FindBin;
 use lib "$FindBin::RealBin/lib/";
-use constant {
-	true           => 1,
-	false          => undef,
-};
+use FCGIM::Constants;
+
+# Allow bundling of options with GeteOpt
+Getopt::Long::Configure ('bundling', 'prefix_pattern=(--|-)');
 
 my $appN = basename($0);
 my $config;
 my $confFile = '/etc/fcgim.conf';
 my $cmdOutFile;
+my $verbosity = 1;
 my $VERSION = '0.1';
 
 main();
@@ -52,17 +53,14 @@ sub main
 			cmdHelper();
 		}
 
-		# Handle --help and --version
-		if ($ARGV[0] =~ /^(--?help|-h)$/)
-		{
-			fullUsage();
-			exit(0);
-		}
-		elsif($ARGV[0] =~ /^--version$/)
-		{
-			print "fcgim version $VERSION\n";
-			exit(0);
-		}
+		GetOptions (
+			'verbose|v' => sub { $verbosity++;},
+			'version' => sub {
+				print "fcgim version $VERSION\n";
+				exit(0);
+			},
+			'help|h' => sub { fullUsage(); exit 0; },
+		) or die("See $0 --help for more information\n");
 	}
 	# If we have no params, output usage and exit
 	else
@@ -142,18 +140,20 @@ sub main
 # Purpose: Display the full usage information
 sub fullUsage
 {
-	print "Usage: $appN [APP] [COMMAND]\n";
+	print "Usage: $appN (PARAMETERS) [APP] [COMMAND]\n";
 	print " [APP] can be the string \"all\" to perform the action for ALL applications.\n";
+	print "\nParameters:\n";
+	PrintHelp('-v','--verbose','Increase verbosity (supply multiple times to increase further');
+	PrintHelp('-h','--help','Show this help screen');
 	print "\nCommands:\n";
-	print "start         - start an application\n";
-	print "stop          - stop an application\n";
-	print "restart       - restart an application\n";
-	print "status *      - display status information for an application\n";
-	print "sanitycheck   - perform a simple sanity check on an application\n";
-	print "restartdead * - restart an application if it has died\n";
+	PrintHelp('','start','Start an application');
+	PrintHelp('','stop','Stop an application');
+	PrintHelp('','restart','Restart an application');
+	PrintHelp('','status *','Display status information for an application');
+	PrintHelp('','sanitycheck','Perform a simple sanity check on an application');
+	PrintHelp('','restartdead *','Restart an application if it has died');
 	print "\n";
-	print "*) Can be used without supplying an [APP] - in which case it assumes\n";
-	print "   APP=all\n";
+	print "See the manpage for more information.\n";
 }
 
 # Purpose: Handle an action for a single application
@@ -271,15 +271,20 @@ sub loadConfig
 sub cmd
 {
 	my $dropToGID = shift;
-	my $dropToPID = shift;
+	my $dropToUID = shift;
 	my $daemonize = shift;
+
+	printv(V_VERBOSE,'About to run: '.join(' ',@_)."\n");
+
 	# Use cmdhelper if needed
-	if(defined $dropToPID and defined $dropToGID)
+	if(defined $dropToUID and defined $dropToGID)
 	{
-		unshift(@_,$0,'cmdHelper','setID',$dropToGID,$dropToPID);
+		printv(V_DEBUG,"Will run as GID=$dropToGID and UID=$dropToUID\n");
+		unshift(@_,$0,'cmdHelper','setID',$dropToGID,$dropToUID);
 	}
 	if($daemonize)
 	{
+		printv(V_DEBUG,"Will daemonize the command manually\n");
 		unshift(@_,$0,'cmdHelper','daemonize',$daemonize);
 	}
 	# Redirect output
@@ -402,6 +407,20 @@ sub isStr
 	return;
 }
 
+sub printv
+{
+	my $level = shift;
+	if ($level <= $verbosity)
+	{
+		my $t = 1;
+		for(my $t = 1; $t < $level; $t++)
+		{
+			print " ";
+		}
+		print join('',@_);
+	}
+}
+
 # Purpose: A helper used by fcgim to drop priviliges when starting apps
 sub cmdHelper
 {
@@ -439,6 +458,64 @@ sub cmdHelper
 	{
 		die("Unknown helper type \"$type\"\n");
 	}
+}
+
+# Purpose: Print formatted --help output
+# Usage: PrintHelp('-shortoption', '--longoption', 'description');
+#  Description will be reformatted to fit within a normal terminal
+sub PrintHelp
+{
+	# The short option
+	my $short = shift,
+	# The long option
+	my $long = shift;
+	# The description
+	my $desc = shift;
+	# The generated description that will be printed in the end
+	my $GeneratedDesc;
+	# The current line of the description
+	my $currdesc = '';
+	# The maximum length any line can be
+	my $maxlen = 80;
+	# The length the options take up
+	my $optionlen = 20;
+	# Check if the short/long are LONGER than optionlen, if so, we need
+	# to do some additional magic to take up only $maxlen.
+	# The +1 here is because we always add a space between them, no matter what
+	if ((length($short) + length($long) + 1) > $optionlen)
+	{
+		$optionlen = length($short) + length($long) + 1;
+	}
+	# Split the description into lines
+	foreach my $part (split(/ /,$desc))
+	{
+		if(defined $GeneratedDesc)
+		{
+			if ((length($currdesc) + length($part) + 1 + 20) > $maxlen)
+			{
+				$GeneratedDesc .= "\n";
+				$currdesc = '';
+			}
+			else
+			{
+				$currdesc .= ' ';
+				$GeneratedDesc .= ' ';
+			}
+		}
+		$currdesc .= $part;
+		$GeneratedDesc .= $part;
+	}
+	# Something went wrong
+	die('Option mismatch') if not $GeneratedDesc;
+	# Print it all
+	foreach my $description (split(/\n/,$GeneratedDesc))
+	{
+		printf "%-4s %-15s %s\n", $short,$long,$description;
+		# Set short and long to '' to ensure we don't print the options twice
+		$short = '';$long = '';
+	}
+	# Succeed
+	return true;
 }
 
 __END__
@@ -520,6 +597,10 @@ Display the help screen
 =item B<--version>
 
 Display the version number
+
+=item B<-v, --verbose>
+
+Increase fcgim verbosity. Supply multiple times to increase further.
 
 =back
 
