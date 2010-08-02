@@ -63,11 +63,11 @@ sub stop
 		my $PID = $self->getPID();
 
 		$self->msg('stopping');
-		for my $l (1..10)
+		for my $l (1..25)
 		{
-			if ($l > 5)
+			if ($l > 15)
 			{
-				$self->msg('stopinsist') if $l == 6;
+				$self->msg('stopinsist') if $l == 16;
 				printv(V_VERBOSE,"Sending signal 9 (SIGKILL) to PID $PID\n");
 				kill(9,$PID);
 			}
