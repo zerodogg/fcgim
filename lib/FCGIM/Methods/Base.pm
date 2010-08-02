@@ -159,7 +159,7 @@ sub status
 	my $status = $self->getStatus();
 	if ($status == STATUS_RUNNING)
 	{
-		$outStat = 'up and running (PID '.$self->getPID().')';
+		$outStat = 'up and running (up '.$self->uptime().'. PID '.$self->getPID().')';
 	}
 	elsif($status == STATUS_STOPPED)
 	{
@@ -175,6 +175,30 @@ sub status
 	}
     printv(V_NORMAL,sprintf($fmt,$self->name,$outStat));
     return 1;
+}
+
+# Purpose: Get the uptime for an app
+sub uptime
+{
+	my $self = shift;
+	if(not -e $self->app->{PIDFile} or not defined($self->getPID()))
+	{
+		return '(not currently up)';
+	}
+	my @stat = stat($self->app->{PIDFile});
+	if(not @stat)
+	{
+		printv(V_DEBUG,'Failed to stat() '.$self->app->{PIDFILE}.': '.$!);
+		return '(unknown)';
+	}
+	my $sUptime = time()-$stat[9];
+	my $days    = int($sUptime/(24*60*60));
+	my $hours   = prefixZero( ($sUptime/(60*60))%24 );
+	my $mins    = prefixZero( ($sUptime/60)%60 );
+	my $secs    = prefixZero( $sUptime%60 );
+	my $dayStr  = $days == 1 ? ' day,  ' : ' days, ';
+	my $uptime  = $days.$dayStr.$hours.':'.$mins.':'.$secs;
+	return $uptime;
 }
 
 # Purpose: Perform a sanity check if possible
@@ -412,11 +436,23 @@ sub preparePIDFile
     return 1;
 }
 
+# Purpose: Print a string using our verbose print helper in main::
 sub printv
 {
 	# Allows method to work both as a function and method
 	shift if(ref($_[0]));
 	main::printv(@_);
+}
+
+# Purpose: Prefix a string with 0 if it is only 1 character long
+sub prefixZero
+{
+	my $v = shift;
+	if(length($v) == 1)
+	{
+		$v = "0$v";
+	}
+	return $v;
 }
 
 __PACKAGE__->meta->make_immutable;
