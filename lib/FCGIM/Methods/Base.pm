@@ -195,9 +195,8 @@ sub uptime
 	my $days    = int($sUptime/(24*60*60));
 	my $hours   = prefixZero( ($sUptime/(60*60))%24 );
 	my $mins    = prefixZero( ($sUptime/60)%60 );
-	my $secs    = prefixZero( $sUptime%60 );
 	my $dayStr  = $days == 1 ? ' day,  ' : ' days, ';
-	my $uptime  = $days.$dayStr.$hours.':'.$mins.':'.$secs;
+	my $uptime  = $days.$dayStr.$hours.':'.$mins;
 	return $uptime;
 }
 
