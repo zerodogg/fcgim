@@ -21,6 +21,7 @@ package FCGIM::Methods::PHP;
 use Any::Moose;
 extends 'FCGIM::Methods::Base';
 use FCGIM::Constants;
+use Time::HiRes qw(sleep);
 
 has 'fcgiScript' => (
 	is => 'rw',
@@ -64,6 +65,18 @@ sub startApp
 	{
 		$self->msg('start_error');
 	}
+    for(1..5)
+    {
+        if ($self->getStatus == STATUS_RUNNING)
+        {
+           sleep(0.1);
+        }
+        else
+        {
+            $self->msg('start_error');
+            return;
+        }
+    }
 	$self->msg('pidDone');
 	return 1;
 }
