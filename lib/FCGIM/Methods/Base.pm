@@ -41,6 +41,10 @@ sub start
 		printv(V_NORMAL,"Already running. Maybe you wanted to restart?\n");
 		return;
 	}
+    if (-e $self->app->{serverFile})
+    {
+        unlink($self->app->{serverFile});
+    }
 	$self->startApp();
 	return 1;
 }
