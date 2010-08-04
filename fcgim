@@ -277,15 +277,15 @@ sub cmd
 	printv(V_VERBOSE,'About to run: '.join(' ',@_)."\n");
 
 	# Use cmdhelper if needed
-	if(defined $dropToUID and defined $dropToGID)
-	{
-		printv(V_DEBUG,"Will run as GID=$dropToGID and UID=$dropToUID\n");
-		unshift(@_,$0,'cmdHelper','setID',$dropToGID,$dropToUID);
-	}
 	if($daemonize)
 	{
 		printv(V_DEBUG,"Will daemonize the command manually\n");
 		unshift(@_,$0,'cmdHelper','daemonize',$daemonize);
+	}
+	if(defined $dropToUID and defined $dropToGID)
+	{
+		printv(V_DEBUG,"Will run as GID=$dropToGID and UID=$dropToUID\n");
+		unshift(@_,$0,'cmdHelper','setID',$dropToGID,$dropToUID);
 	}
 	# Redirect output
 	if(not $cmdOutFile)
