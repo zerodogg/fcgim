@@ -527,7 +527,7 @@ fcgim - a FastCGI application manager
 
 =head1 SYNOPSIS
 
-B<fcgim> [I<APPLICATION NAME>] [I<OPTIONS>]
+B<fcgim> [I<OPTIONS>] [I<APPLICATION NAME>] [I<COMMAND>]
 
 =head1 DESCRIPTION
 
