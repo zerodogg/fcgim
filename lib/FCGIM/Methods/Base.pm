@@ -41,7 +41,7 @@ sub start
 		printv(V_NORMAL,"Already running. Maybe you wanted to restart?\n");
 		return;
 	}
-    if (-e $self->app->{serverFile})
+    if (-e $self->app->{serverFile} && $self->app->{serverFile} =~ m{^/})
     {
         unlink($self->app->{serverFile});
     }
