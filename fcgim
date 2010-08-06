@@ -611,13 +611,14 @@ I</etc/fcgim.conf>.
 
 =head2 EXAMPLE
 
-	// FCGIM configuration file. The format for this file is JSON, with the added
-	// support for comments (any line that STARTS with // is considered a comment)
+	// FCGIM configuration file. The format for this file is JSON with comment
+	// support (any line that STARTS with // is considered a comment)
 	{
 		// Configuration of fcigm itself
 		"fcgim": {
 			 // Which UID and GID respectively to run the fastcgi processes
-			 // as. You can also set them on a per-app basis.
+			 // as. You can also set them on a per-app basis by adding them to 
+			 // the app config section.
 			"runAsUID":33,
 			"runAsGID":33,
 			 // Where to put PID files etc.
@@ -644,7 +645,8 @@ I</etc/fcgim.conf>.
 				"type":"Catalyst",
 				// The max number of processes to use for this app
 				"processes":4,
-				// The location of the server process file
+				// The location of the server process file. Can also be an address
+				// to listen on (HOST:PORT or :PORT)
 				"serverFile":"/tmp/myapp.socket",
 				// Any environment variables you want set in the environment of
 				// this application
