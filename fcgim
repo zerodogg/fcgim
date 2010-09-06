@@ -101,37 +101,40 @@ sub main
 		}
 	}
 
-	if(not defined $config->{apps}->{$app} and not $app eq 'all')
+	foreach my $myApp (split(/,/,$app))
 	{
-		# Detect reversed parameters
-		if ($config->{apps}->{$command})
+		if(not defined $config->{apps}->{$myApp} and not $myApp eq 'all')
 		{
-			die("$app: unknown application\nMaybe you meant \"$appN $command $app\"?\n");
+			# Detect reversed parameters
+			if ($config->{apps}->{$command})
+			{
+				die("$myApp: unknown application\nMaybe you meant \"$appN $command $myApp\"?\n");
+			}
+			else
+			{
+				die("$myApp: unknown application\n");
+			}
 		}
+
+		# Create our data dir
+		if(not -d $config->{fcgim}->{fcgimTempPath})
+		{
+			mkpath($config->{fcgim}->{fcgimTempPath}) or die("Failed to create $config->{fcgim}->{fcgimTempPath}: $!\n");
+		}
+
+		# Handle all
+		if ($myApp eq 'all')
+		{
+			foreach my $e (keys %{$config->{apps}})
+			{
+				actionHandler($command,$e);
+			}
+		}
+		# Single app
 		else
 		{
-			die("$app: unknown application\n");
+			actionHandler($command,$myApp);
 		}
-	}
-
-	# Create our data dir
-	if(not -d $config->{fcgim}->{fcgimTempPath})
-	{
-		mkpath($config->{fcgim}->{fcgimTempPath}) or die("Failed to create $config->{fcgim}->{fcgimTempPath}: $!\n");
-	}
-
-	# Handle all
-	if ($app eq 'all')
-	{
-		foreach my $e (keys %{$config->{apps}})
-		{
-			actionHandler($command,$e);
-		}
-	}
-	# Single app
-	else
-	{
-		actionHandler($command,$app);
 	}
 
 	exit(0);
@@ -142,6 +145,8 @@ sub fullUsage
 {
 	print "Usage: $appN (PARAMETERS) [APP] [COMMAND]\n";
 	print " [APP] can be the string \"all\" to perform the action for ALL applications.\n";
+	print " You can perform actions on multiple applications by supplying multiple\n";
+	print " names as the [APP] parameter, separated by commas\n";
 	print "\nParameters:\n";
 	PrintHelp('-v','--verbose','Increase verbosity (supply multiple times to increase further');
 	PrintHelp('-h','--help','Show this help screen');
@@ -152,6 +157,7 @@ sub fullUsage
 	PrintHelp('','status *','Display status information for an application');
 	PrintHelp('','sanitycheck','Perform a simple sanity check on an application');
 	PrintHelp('','restartdead *','Restart an application if it has died');
+	print "*) Can be used without the [APP] parameter\n";
 	print "\n";
 	print "See the manpage for more information.\n";
 }
@@ -527,7 +533,7 @@ fcgim - a FastCGI application manager
 
 =head1 SYNOPSIS
 
-B<fcgim> [I<OPTIONS>] [I<APPLICATION NAME>] [I<COMMAND>]
+B<fcgim> [I<OPTIONS>] [I<APPLICATION NAME/LIST>] [I<COMMAND>]
 
 =head1 DESCRIPTION
 
@@ -538,6 +544,9 @@ to performing actions on them.
 Currently it only supports Catalyst and PHP FastCGI applications, but adding support for
 new types of applications is simple, and can be done in under 100 lines of
 code (including comments). See ./lib/FCGIM/Methods/Catalyst.pm for an example.
+
+fcgim can perform actions on multiple applications at once, simply supply
+multiple applications separated by commas as the second parameter.
 
 =head1 COMMANDS
 
