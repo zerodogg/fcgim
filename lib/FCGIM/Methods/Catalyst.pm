@@ -68,7 +68,7 @@ sub startApp
 
     $self->preparePIDFile($self->app->{PIDFile});
 	my $r = $self->cmd(false,$self->script,'--listen',$self->app->{serverFile},'--nproc',$self->app->{processes},'--pidfile',$self->app->{PIDFile},'--daemon');
-	if ($r != 0)
+	if ($r != 0 || !$self->getPID())
 	{
 		$self->msg('start_error');
 	}
