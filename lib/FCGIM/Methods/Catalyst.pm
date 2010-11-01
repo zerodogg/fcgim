@@ -39,7 +39,8 @@ sub script
 	{
 		die($self->app->{path}.'/script/: does not exist. Failed to locate fastcgi script.'."\n");
 	}
-	my $script = glob($self->app->{path}.'/script/*_fastcgi.pl');
+	my @scripts = glob($self->app->{path}.'/script/*_fastcgi.pl');
+	my $script = shift(@scripts);
 	if(not defined $script or not -e $script or not -x $script)
 	{
 		if (defined $script)
