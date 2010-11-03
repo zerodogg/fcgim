@@ -49,6 +49,13 @@ sub start
 	return 1;
 }
 
+# Purpose: Alias for ->stop to ensure naming consistency
+sub stopApp
+{
+	my $self = shift;
+	return $self->stop(@_);
+}
+
 # Purpose: Stop an app
 sub stop
 {
@@ -67,18 +74,10 @@ sub stop
 		my $PID = $self->getPID();
 
 		$self->msg('stopping');
-		for my $l (1..25)
+		for my $l (1..30)
 		{
-			if ($l > 15)
-			{
-				$self->msg('stopinsist') if $l == 16;
-				printv(V_VERBOSE,"Sending signal 9 (SIGKILL) to PID $PID\n");
-				kill(9,$PID);
-			}
-			else
-			{
-				$self->killPID($PID);
-			}
+			print '.';
+			$self->killPID($PID);
 
 			last if $self->getStatus != STATUS_RUNNING;
 			sleep(1);
@@ -406,6 +405,7 @@ sub msg
 	elsif($msg eq 'stop_error')
 	{
 		printv(V_NORMAL,'failed to stop PID '.$self->getPID()."\n");
+		printv(V_NORMAL,'Try killing it (kill '.$self->getPID().' or kill -9 '.$self->getPID().') yourself',"\n");
 		exit(1);
 	}
 	elsif($msg eq 'alreadyRunning')

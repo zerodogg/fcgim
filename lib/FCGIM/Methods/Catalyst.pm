@@ -77,40 +77,6 @@ sub startApp
 	return true;
 }
 
-# Purpose: Stop the catalyst app
-sub stopApp
-{
-	my $self = shift;
-	my $PID = $self->getPID();
-
-	$self->msg('stopping');
-	for my $l (1..10)
-	{
-		if ($l > 5)
-		{
-			$self->msg('stopinsist') if $l == 6;
-			kill(9,$PID);
-		}
-		else
-		{
-			kill(15,$PID);
-		}
-
-		last if $self->getStatus != STATUS_RUNNING;
-		sleep(1);
-		last if $self->getStatus != STATUS_RUNNING;
-	}
-
-	if ($self->getStatus == STATUS_RUNNING)
-	{
-		$self->msg('stop_error');
-	}
-	unlink($self->app->{PIDFile});
-	unlink($self->app->{serverFile});
-	$self->msg('done');
-	return true;
-}
-
 # Purpose: Restart the catalyst app, running a test instance first
 sub restartApp
 {
