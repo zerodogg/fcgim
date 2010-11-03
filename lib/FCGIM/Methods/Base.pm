@@ -77,12 +77,12 @@ sub stop
 		$self->msg('stopping');
 		for my $l (1..30)
 		{
-			print '.';
 			$self->killPID($PID);
 
 			last if $self->getStatus != STATUS_RUNNING;
 			sleep(1);
 			last if $self->getStatus != STATUS_RUNNING;
+			print '.';
 		}
 
 		if ($self->getStatus == STATUS_RUNNING)
