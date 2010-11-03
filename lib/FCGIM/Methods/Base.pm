@@ -353,11 +353,7 @@ sub pidRunning
     {
         return;
     }
-	if (-d '/proc/'.$pid)
-	{
-		return 1;
-	}
-	elsif(kill(0,$pid))
+	if(kill(0,$pid))
 	{
 		return 1;
 	}
