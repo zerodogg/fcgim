@@ -231,6 +231,36 @@ sub killPID
     return 1;
 }
 
+# Purpose: Loop trying to kill a PID N times
+sub killPIDloop
+{
+	my $self = shift;
+	my $PID = shift;
+	my $loop = shift;
+	$loop = ($loop =~ /\D/) ? 10 : $loop;
+	$loop = ($loop > 60 || $loop < 1) ? 10 : $loop;
+	foreach (0..$loop)
+	{
+		$self->killPID($PID);
+		last if not $self->pidRunning($PID);
+		sleep(1);
+		last if not $self->pidRunning($PID);
+	}
+	return $self->pidRunning($PID);
+}
+
+# Purpose: Kill a sanity check server
+sub killSanityServer
+{
+	my $self = shift;
+	my $PID = shift;
+	if(not $self->killPIDloop($PID,10))
+	{
+		warn("Failed to destroy sanity check process\n");
+		warn('You\'re going to need to kill PID '.$self->getPID($PID)." yourself,\n");
+	}
+}
+
 # Purpose: Get the status of an app
 sub getStatus
 {

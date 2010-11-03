@@ -107,6 +107,11 @@ sub sanityCheckApp
 
 	if ($r != 0 || !$self->getPID($tmpP))
 	{
+		if ($self->pidRunning($tmpP))
+		{
+			warn("Strange, sanity check failed, but process is running.\n");
+			warn('You\'re going to need to kill PID '.$self->getPID($tmpP)." yourself,\n");
+		}
 		if ($restartMode)
 		{
 			$self->msg('testinstance_error_restart');
@@ -117,7 +122,7 @@ sub sanityCheckApp
 		}
 	}
 
-	$self->killPID($tmpP);
+	$self->killSanityServer($tmpP);
 	unlink($tmpL); unlink($tmpP);
 
 	$self->msg('works');
