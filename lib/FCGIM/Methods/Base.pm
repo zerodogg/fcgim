@@ -63,11 +63,11 @@ sub stop
 	my $self = shift;
 	if ($self->getStatus == STATUS_STOPPED)
 	{
-		printv(V_NORMAL,"Already stopped.\n");
+		printv(V_NORMAL,$self->name.": Already stopped.\n");
 	}
 	elsif($self->getStatus == STATUS_DEAD)
 	{
-		printv(V_NORMAL,"Already dead - removing pidfile.\n");
+		printv(V_NORMAL,$self->name.": Already dead - removing pidfile.\n");
 		unlink($self->app->{PIDFile}) or warn('Failed to unlink pidfile '.$self->app->{PIDFile}.": $!\n");
 	}
 	else
