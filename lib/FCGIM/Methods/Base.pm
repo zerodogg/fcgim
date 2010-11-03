@@ -17,6 +17,7 @@
 package FCGIM::Methods::Base;
 use FCGIM::Constants;
 use Any::Moose;
+use Try::Tiny;
 
 # Application config
 has 'app' => (
@@ -239,6 +240,15 @@ sub killPIDloop
 	my $loop = shift;
 	$loop = ($loop =~ /\D/) ? 10 : $loop;
 	$loop = ($loop > 60 || $loop < 1) ? 10 : $loop;
+
+	# Try to get the PID. If we can't, we assume the app has
+	# exited.
+	try
+	{
+		$PID = $self->getPID($PID);
+	};
+	return 0 if not $PID;
+
 	foreach (0..$loop)
 	{
 		$self->killPID($PID);
@@ -341,7 +351,10 @@ sub pidRunning
 {
 	my $self = shift;
 	my $pid = shift;
-	$pid = $self->getPID($pid);
+	try
+	{
+		$pid = $self->getPID($pid);
+	};
     if(not defined $pid or not length($pid))
     {
         return;
