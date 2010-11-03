@@ -99,6 +99,12 @@ sub sanityCheckApp
     unlink($tmpL);
 	my $r = $self->cmd(false,$self->script,'--listen',$tmpL,'--nproc',1,'--pidfile',$tmpP,'--daemon');
 
+	# Give it another second to initialize if needed
+	if (!$self->getPID($tmpP))
+	{
+		sleep(1);
+	}
+
 	if ($r != 0 || !$self->getPID($tmpP))
 	{
 		if ($restartMode)
