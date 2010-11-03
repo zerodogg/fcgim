@@ -565,8 +565,9 @@ Stops an application if it is currently running.
 Restarts an application.
 
 For those applications that supports it, fcgim will run a sanitycheck (see the
-I<sanitycheck> command) before stopping the running instance. If the
-sanitycheck fails, fcgim will refuse to restart the application.
+I<sanitycheck> command) before stopping the running instance, as long as
+the "sanityOnRestart" option is set to true for that app. If the sanitycheck
+fails, fcgim will refuse to restart the application.
 
 =item B<status>
 
@@ -657,6 +658,9 @@ I</etc/fcgim.conf>.
 				// The location of the server process file. Can also be an address
 				// to listen on (HOST:PORT or :PORT)
 				"serverFile":"/tmp/myapp.socket",
+				// (Catalyst APPs only): Enable/disable sanity checking of server
+				// before 'restart'. See the manpage for more information.
+				"sanityOnRestart":true,
 				// Any environment variables you want set in the environment of
 				// this application
 				"ENV": {},

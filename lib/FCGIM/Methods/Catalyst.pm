@@ -81,7 +81,10 @@ sub startApp
 sub restartApp
 {
 	my $self = shift;
-	$self->sanityCheckApp(true);
+	if ($self->app->{sanityOnRestart})
+	{
+		$self->sanityCheckApp(true);
+	}
 	$self->stopApp();
 	$self->startApp();
 	return true;
