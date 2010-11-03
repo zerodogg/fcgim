@@ -69,7 +69,7 @@ sub startApp
 
     $self->preparePIDFile($self->app->{PIDFile});
 	my $r = $self->cmd(false,$self->script,'--listen',$self->app->{serverFile},'--nproc',$self->app->{processes},'--pidfile',$self->app->{PIDFile},'--daemon');
-	if ($r != 0 || !$self->getPID())
+	if ($r != 0 || !$self->getPIDSafe())
 	{
 		$self->msg('start_error');
 	}
@@ -103,12 +103,12 @@ sub sanityCheckApp
 	my $r = $self->cmd(false,$self->script,'--listen',$tmpL,'--nproc',1,'--pidfile',$tmpP,'--daemon');
 
 	# Give it another second to initialize if needed
-	if (!$self->getPID($tmpP))
+	if (!$self->getPIDSafe($tmpP))
 	{
 		sleep(1);
 	}
 
-	if ($r != 0 || !$self->getPID($tmpP))
+	if ($r != 0 || !$self->getPIDSafe($tmpP))
 	{
 		if ($self->pidRunning($tmpP))
 		{

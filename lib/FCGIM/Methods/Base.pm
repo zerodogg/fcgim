@@ -233,6 +233,7 @@ sub killPID
 }
 
 # Purpose: Loop trying to kill a PID N times
+# Returns: true if the process is no longe rrunning
 sub killPIDloop
 {
 	my $self = shift;
@@ -241,13 +242,8 @@ sub killPIDloop
 	$loop = ($loop =~ /\D/) ? 10 : $loop;
 	$loop = ($loop > 60 || $loop < 1) ? 10 : $loop;
 
-	# Try to get the PID. If we can't, we assume the app has
-	# exited.
-	try
-	{
-		$PID = $self->getPID($PID);
-	};
-	return 0 if not $PID;
+	$PID = $self->getPIDSafe($PID);
+	return 1 if not $PID;
 
 	foreach (0..$loop)
 	{
@@ -256,7 +252,8 @@ sub killPIDloop
 		sleep(1);
 		last if not $self->pidRunning($PID);
 	}
-	return $self->pidRunning($PID);
+	# Our return value is the reverse of pidRunning
+	return !($self->pidRunning($PID));
 }
 
 # Purpose: Kill a sanity check server
@@ -351,10 +348,7 @@ sub pidRunning
 {
 	my $self = shift;
 	my $pid = shift;
-	try
-	{
-		$pid = $self->getPID($pid);
-	};
+	$pid = $self->getPIDSafe($pid);
     if(not defined $pid or not length($pid))
     {
         return;
@@ -384,12 +378,39 @@ sub getPID
 	}
 	if ($PID =~ /\D/)
 	{
+		if(not -e $PID)
+		{
+			die("PID file ($PID) does not exist\n");
+		}
 		open(my $i,'<',$PID) or die("Failed to read PID file $PID: $!\n");
 		my $pid = <$i>;
 		chomp($pid) if defined $pid;
 		close($i);
 		$PID = $pid;
 	}
+	return $PID;
+}
+
+# Purpose: Retrieve a PID, or undef if the pidfile is gone
+sub getPIDSafe
+{
+	my $self = shift;
+	my $PID = shift;
+	try
+	{
+		$PID = $self->getPID($PID);
+	}
+	catch
+	{
+		if (/^PID file \(.+\) does not exist/)
+		{
+			$PID = undef;
+		}
+		else
+		{
+			die($_);
+		}
+	};
 	return $PID;
 }
 
