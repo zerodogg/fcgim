@@ -239,6 +239,7 @@ sub killPIDloop
 	my $self = shift;
 	my $PID = shift;
 	my $loop = shift;
+	my $print = shift;
 	$loop = ($loop =~ /\D/) ? 10 : $loop;
 	$loop = ($loop > 60 || $loop < 1) ? 10 : $loop;
 
@@ -250,6 +251,7 @@ sub killPIDloop
 		$self->killPID($PID);
 		last if not $self->pidRunning($PID);
 		sleep(1);
+		print '.' if $print;
 		last if not $self->pidRunning($PID);
 	}
 	# Our return value is the reverse of pidRunning
@@ -257,15 +259,21 @@ sub killPIDloop
 }
 
 # Purpose: Kill a sanity check server
+# If this suceeds, it returns true. If not, it returns false, outputs the
+# 'works' ->msg(), and also outputs a message stating that it failed to kill
+# the sanity check process and instructing the user to kill it manually.
 sub killSanityServer
 {
 	my $self = shift;
 	my $PID = shift;
-	if(not $self->killPIDloop($PID,10))
+	if(not $self->killPIDloop($PID,15,true))
 	{
-		warn("Failed to destroy sanity check process\n");
-		warn('You\'re going to need to kill PID '.$self->getPID($PID)." yourself,\n");
+		$self->msg('works');
+		warn("Failed to destroy the sanity check process\n");
+		warn('You\'re going to need to kill PID '.$self->getPID($PID)." yourself\n");
+		return false;
 	}
+	return true;
 }
 
 # Purpose: Get the status of an app
