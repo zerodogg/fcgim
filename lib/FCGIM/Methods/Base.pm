@@ -75,14 +75,14 @@ sub stop
 		my $PID = $self->getPID();
 
 		$self->msg('stopping');
-		for my $l (1..30)
-		{
-			$self->killPID($PID);
 
-			last if $self->getStatus != STATUS_RUNNING;
-			sleep(1);
-			last if $self->getStatus != STATUS_RUNNING;
-			print '.';
+		$self->killPIDloop($PID,30,true);
+
+		if ($self->getStatus == STATUS_RUNNING)
+		{
+			print ' ';
+			$self->msg('stillTrying');
+			$self->killPIDloop($PID,30,true);
 		}
 
 		if ($self->getStatus == STATUS_RUNNING)
@@ -233,7 +233,7 @@ sub killPID
 }
 
 # Purpose: Loop trying to kill a PID N times
-# Returns: true if the process is no longe rrunning
+# Returns: true if the process is no longer running
 sub killPIDloop
 {
 	my $self = shift;
@@ -492,6 +492,10 @@ sub msg
 	elsif($msg eq 'done')
 	{
 		printv(V_NORMAL,"done\n");
+	}
+	elsif($msg eq 'stillTrying')
+	{
+		printv(V_NORMAL,'still trying...');
 	}
     return 1;
 }
