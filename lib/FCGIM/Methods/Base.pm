@@ -383,6 +383,15 @@ sub pidRunning
 		return 1;
 	}
     my $e = $!;
+
+    # This fallback may only work properly on Linux systems.  If we're on
+    # something else, this code will just return false, and thus it does no
+    # harm (and can be useful when on a Linux kernel).
+    if (-d '/proc/' && -r '/proc/'.$$ && -d '/proc/'.$pid)
+    {
+        return 1;
+    }
+
     if(wantarray && $e)
     {
         return(undef,$e);
