@@ -70,6 +70,10 @@ sub stop
 		printv(V_NORMAL,$self->name.": Already dead - removing pidfile.\n");
 		unlink($self->app->{PIDFile}) or warn('Failed to unlink pidfile '.$self->app->{PIDFile}.": $!\n");
 	}
+    elsif($self->getStatus == STATUS_UNKNOWN || $self->getStatus == STATUS_UNKNOWN_PERMDENIED)
+    {
+        printv(V_NORMAL,$self->name.': Failed to retrieve status - ignoring request to stop');
+    }
 	else
 	{
 		my $PID = $self->getPID();
@@ -173,6 +177,10 @@ sub status
 	{
         $outStat = 'DEAD!';
 	}
+    elsif($status == STATUS_UNKNOWN_PERMDENIED)
+    {
+        $outStat = 'UNKNOWN! (permission denied when attempting to check status)';
+    }
 	else
 	{
         $outStat = 'UNKNOWN!';
@@ -285,10 +293,19 @@ sub getStatus
 		return STATUS_STOPPED;
 	}
 
-	if ($self->pidRunning($self->app->{PIDFile}))
-	{
+    my($status,$err) = $self->pidRunning($self->app->{PIDFile});
+    if ($status)
+    {
 		return STATUS_RUNNING;
-	}
+    }
+    elsif($err && $err =~ /Operation not permitted/)
+    {
+        return STATUS_UNKNOWN_PERMDENIED;
+    }
+    elsif($err)
+    {
+        return STATUS_UNKNOWN;
+    }
 	return STATUS_DEAD;
 }
 
@@ -365,6 +382,11 @@ sub pidRunning
 	{
 		return 1;
 	}
+    my $e = $!;
+    if(wantarray && $e)
+    {
+        return(undef,$e);
+    }
 	return;
 }
 
