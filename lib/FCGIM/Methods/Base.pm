@@ -76,13 +76,13 @@ sub stop
 
 		$self->msg('stopping');
 
-		$self->killPIDloop($PID,30,true);
+		$self->killPIDloop($PID,35,true);
 
 		if ($self->getStatus == STATUS_RUNNING)
 		{
 			print ' ';
 			$self->msg('stillTrying');
-			$self->killPIDloop($PID,30,true);
+			$self->killPIDloop($PID,35,true);
 		}
 
 		if ($self->getStatus == STATUS_RUNNING)
