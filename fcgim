@@ -125,7 +125,7 @@ sub main
 		# Handle all
 		if ($myApp eq 'all')
 		{
-			foreach my $e (keys %{$config->{apps}})
+			foreach my $e (sort keys %{$config->{apps}})
 			{
 				actionHandler($command,$e);
 			}
