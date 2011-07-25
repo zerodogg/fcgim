@@ -80,13 +80,36 @@ sub stop
 
 		$self->msg('stopping');
 
-		$self->killPIDloop($PID,35,true);
+		$self->killPIDloop({
+				PID => $PID,
+				loop => 18,
+				print => true,
+				sleepSeconds => 2,
+			});
 
 		if ($self->getStatus == STATUS_RUNNING)
 		{
 			print ' ';
 			$self->msg('stillTrying');
-			$self->killPIDloop($PID,35,true);
+			$self->killPIDloop({
+					PID => $PID,
+					loop => 35,
+					print => true
+				});
+		}
+
+		no warnings;
+		my $allowKill = $main::allowKill;
+		use warnings;
+		if ($allowKill)
+		{
+			$self->msg('tryingKILL');
+			$self->killPIDloop({
+					PID => $PID,
+					loop => 35,
+					print => true,
+					SIG => 9,
+				});
 		}
 
 		if ($self->getStatus == STATUS_RUNNING)
@@ -216,9 +239,17 @@ sub uptime
 sub sanityCheck
 {
 	my $self = shift;
+    my $restartMode = shift;
+	no warnings;
+	my $allowSanity = $main::allowSanity;
+	use warnings;
+	if(not $allowSanity)
+	{
+		return 1;
+	}
 	if ($self->can('sanityCheckApp'))
 	{
-		$self->sanityCheckApp();
+		$self->sanityCheckApp($restartMode);
 	}
 	else
 	{
@@ -232,11 +263,13 @@ sub killPID
 {
 	my $self = shift;
 	my $PID = shift;
+	my $SIG = shift;
+	$SIG //= 15;
 	$PID = $self->getPID($PID);
     # Bail out if we have no PID
     die("killPID() failed to locate any PID to kill, bailing out\n") if not defined $PID;
 	printv(V_VERBOSE,"Sending signal 15 (SIGTERM) to PID $PID\n");
-	kill(15,$PID);
+	kill($SIG,$PID);
     return 1;
 }
 
@@ -245,25 +278,30 @@ sub killPID
 sub killPIDloop
 {
 	my $self = shift;
-	my $PID = shift;
-	my $loop = shift;
-	my $print = shift;
-	$loop = ($loop =~ /\D/) ? 10 : $loop;
-	$loop = ($loop > 60 || $loop < 1) ? 10 : $loop;
+	my $s = shift;
 
-	$PID = $self->getPIDSafe($PID);
-	return 1 if not $PID;
+	$s->{sleepSeconds} //= 1;
+	$s->{loop} = ($s->{loop} =~ /\D/) ? 10 : $s->{loop};
+	$s->{loop} = ($s->{loop} > 60 || $s->{loop} < 1) ? 10 : $s->{loop};
 
-	foreach (0..$loop)
+	$s->{PID} = $self->getPIDSafe($s->{PID});
+	return 1 if not $s->{PID};
+
+	foreach (0..$s->{loop})
 	{
-		$self->killPID($PID);
-		last if not $self->pidRunning($PID);
-		sleep(1);
-		print '.' if $print;
-		last if not $self->pidRunning($PID);
+		$self->killPID($s->{PID},$s->{SIG});
+		last if not $self->pidRunning($s->{PID});
+		
+		foreach (1..$s->{sleepSeconds})
+		{
+			sleep(1);
+			print '.' if $s->{print};
+			last if not $self->pidRunning($s->{PID});
+		}
+		last if not $self->pidRunning($s->{PID});
 	}
 	# Our return value is the reverse of pidRunning
-	return !($self->pidRunning($PID));
+	return !($self->pidRunning($s->{PID}));
 }
 
 # Purpose: Kill a sanity check server
@@ -274,7 +312,7 @@ sub killSanityServer
 {
 	my $self = shift;
 	my $PID = shift;
-	if(not $self->killPIDloop($PID,15,true))
+	if(not $self->killPIDloop({ PID => $PID, sleepSeconds => 2, loop => 8, print => true}))
 	{
 		$self->msg('works');
 		warn("Failed to destroy the sanity check process\n");
@@ -527,6 +565,10 @@ sub msg
 	elsif($msg eq 'stillTrying')
 	{
 		printv(V_NORMAL,'still trying...');
+	}
+	elsif($msg eq 'tryingKILL')
+	{
+		printv(V_NORMAL,'failed, attempting to kill...');
 	}
     return 1;
 }

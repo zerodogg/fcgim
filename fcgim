@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # fcgim - FastCGI application manager
-# Copyright (C) Eskild Hustvedt 2010
+# Copyright (C) Eskild Hustvedt 2010, 2011
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,11 +31,21 @@ use FCGIM::Constants;
 # Allow bundling of options with GeteOpt
 Getopt::Long::Configure ('bundling', 'prefix_pattern=(--|-)');
 
+# App name
 my $appN = basename($0);
+# Config (hashref)
 my $config;
+# Path to config file
 my $confFile = '/etc/fcgim.conf';
+# Used for tracking calls to fcgim cmd output
 my $cmdOutFile;
+# Verbosity indicator, the higher the more verbose
 my $verbosity = 1;
+# true if we are allowed to use SIGKILL
+my $allowKill = 0;
+# true if we are allowed to perform sanity checks
+my $allowSanity = 1;
+# Our version number
 my $VERSION = '0.1';
 
 main();
@@ -54,7 +64,9 @@ sub main
 		}
 
 		GetOptions (
+			'allowkill' => \$allowKill,
 			'verbose|v' => sub { $verbosity++;},
+			'nosanity' => sub { $allowSanity = 0 },
 			'version' => sub {
 				print "fcgim version $VERSION\n";
 				exit(0);
@@ -99,6 +111,13 @@ sub main
 				die("Error: command missing.\n\n".$usage);
 			}
 		}
+	}
+
+	if ($command eq 'forcerestart')
+	{
+		$allowKill = 1;
+		$allowSanity = 0;
+		$command = 'restart';
 	}
 
 	foreach my $myApp (split(/,/,$app))
@@ -150,10 +169,13 @@ sub fullUsage
 	print "\nParameters:\n";
 	PrintHelp('-v','--verbose','Increase verbosity (supply multiple times to increase further');
 	PrintHelp('-h','--help','Show this help screen');
+	PrintHelp('','--nosanity','Disable sanity checks on hosts with sanityOnRestart=true');
+	PrintHelp('','--allowkill','Allow use of SIGKILL (9) when stopping servers and SIGTERM fails');
 	print "\nCommands:\n";
 	PrintHelp('','start','Start an application');
 	PrintHelp('','stop','Stop an application');
 	PrintHelp('','restart','Restart an application');
+	PrintHelp('','forcerestart','Force-restart an application');
 	PrintHelp('','status *','Display status information for an application');
 	PrintHelp('','sanitycheck','Perform a simple sanity check on an application');
 	PrintHelp('','restartdead *','Restart an application if it has died');
@@ -569,6 +591,11 @@ I<sanitycheck> command) before stopping the running instance, as long as
 the "sanityOnRestart" option is set to true for that app. If the sanitycheck
 fails, fcgim will refuse to restart the application.
 
+=item B<forcerestart>
+
+Force-restarts an application. This is equivalent to running
+"fcgim --nosanity ---allowkill [APP] restart"
+
 =item B<status>
 
 Display status (running/stopped/dead) information for an application.
@@ -607,6 +634,16 @@ Display the help screen
 =item B<--version>
 
 Display the version number
+
+=item B<--allowkill>
+
+Permit fcgim to use SIGKILL ("kill -9") to stop processes if use of SIGTERM
+fails (the default is to abort when SIGTERM fails).
+
+=item B<---nosanity>
+
+Force fcgim not to run sanity checks on hosts that have sanityOnRestart set to
+true.
 
 =item B<-v, --verbose>
 
