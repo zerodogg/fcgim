@@ -318,6 +318,16 @@ sub cmd
 	# Use cmdhelper if needed
 	if($daemonize)
 	{
+		# Demonize is the path to the pidfile, we open it once
+		# to create it and ensure the 'dropToUID' and 'dropToGID'
+		# can write to it
+		if (! -e $daemonize)
+		{
+			open(my $o,'>',$daemonize);
+			close($o);
+		}
+		chown($dropToUID,$dropToGID,$daemonize);
+		chmod(oct(644),$daemonize);
 		printv(V_DEBUG,"Will daemonize the command manually\n");
 		unshift(@_,$0,'cmdHelper','daemonize',$daemonize);
 	}
@@ -333,13 +343,23 @@ sub cmd
 	}
 	# An invalid warning is emitted here, so disable temporarily
 	no warnings;
-	open(SAVED_OUT,'>&STDOUT');
-	open(SAVED_ERR,'>&STDERR');
-	open(STDOUT,'>',$cmdOutFile) or die("Failed to redirect STDOUT to $cmdOutFile: $!\n");
-	open(STDERR,'>',$cmdOutFile) or die("Failed to redirect STDERR to $cmdOutFile: $!\n");
+	if ($verbosity >= V_DEBUG)
+	{
+		printv(V_DEBUG,"Debug logging enabled - will not redirect output from system() call.\n");
+	}
+	else
+	{
+		open(SAVED_OUT,'>&STDOUT');
+		open(SAVED_ERR,'>&STDERR');
+		open(STDOUT,'>',$cmdOutFile) or die("Failed to redirect STDOUT to $cmdOutFile: $!\n");
+		open(STDERR,'>',$cmdOutFile) or die("Failed to redirect STDERR to $cmdOutFile: $!\n");
+	}
 	my $ret = system(@_);
-	open(STDOUT,'>&SAVED_OUT');
-	open(STDERR,'>&SAVED_ERR');
+	if ($verbosity < V_DEBUG)
+	{
+		open(STDOUT,'>&SAVED_OUT');
+		open(STDERR,'>&SAVED_ERR');
+	}
 	use warnings;
 	return $ret;
 }
@@ -467,8 +487,8 @@ sub cmdHelper
 	my $type = shift(@ARGV);
 	if ($type eq 'setID')
 	{
-		my $uid = shift(@ARGV);
 		my $gid = shift(@ARGV);
+		my $uid = shift(@ARGV);
 		setgid($gid) or die("Failed to setgid($gid): $!\n");
 		setuid($uid) or die("Failed to setuid($uid): $!\n");
 
@@ -483,11 +503,12 @@ sub cmdHelper
 		exit(0) if $newPID;
 		die("Failed to fork: $!\n") if not defined($newPID);
 
-		open(my $pf,'>',$pidFile) or die("Failed to open $pidFile: $!\n");
-		print {$pf} $$;
-		close($pf);
-
 		setsid();
+
+		open(my $pf,'>',$pidFile) or die("Failed to open $pidFile: $!\n");
+		print {$pf} $$ or die("Failed to write to $pidFile: $!\n");
+		close($pf) or warn("Failed to close $pidFile: $!\n");
+
 		open(STDIN, '<', '/dev/null');
 		open(STDOUT, '>>', '/dev/null');
 		open(STDERR, '>>', '/dev/null');
