@@ -65,18 +65,18 @@ sub startApp
 	{
 		$self->msg('start_error');
 	}
-    for(1..5)
+    for(1..10)
     {
-        if ($self->getStatus == STATUS_RUNNING)
+        if ($self->getStatus != STATUS_RUNNING)
         {
            sleep(0.1);
         }
-        else
-        {
-            $self->msg('start_error');
-            return;
-        }
     }
+	if ($self->getStatus != STATUS_RUNNING)
+	{
+		$self->msg('start_error');
+		return;
+	}
 	$self->msg('pidDone');
 	return 1;
 }
